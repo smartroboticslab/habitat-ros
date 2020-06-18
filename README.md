@@ -1,29 +1,15 @@
-# README #
+# Habitat-ROS
 
-This README would normally document whatever steps are necessary to get your application up and running.
+A ROS wrapper for
+[Habitat-Sim](https://github.com/facebookresearch/habitat-sim).
 
-### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
-### How do I get set up? ###
+## License
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+Copyright © 2020 Smart Robotics Lab, Imperial College London
 
-### Contribution guidelines ###
+Copyright © 2020 Sotiris Papatheodorou
 
-* Writing tests
-* Code review
-* Other guidelines
+Distributed under the BSD 3-Clause license.
 
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
