@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
+# SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
+# SPDX-License-Identifier: CC0-1.0
+
+# Habitat-ROS node settings
+
+# Published topics
+rgb_topic_name: "/habitat/rgb"
+depth_topic_name: "/habitat/depth"
+semantics_topic_name: "/habitat/semantics"
+habitat_pose_topic_name: "/habitat/pose"
+
+# Subscribed topics
+external_pose_topic_name: "/habitat/ext_pose"
+external_pose_topic_type: "geometry_msgs::PoseStamped"
+
+# Other settings
+enable_external_pose: false
+

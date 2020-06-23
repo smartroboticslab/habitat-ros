@@ -3,7 +3,7 @@
 <!-- SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou -->
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <package>
-  <name>habitat-ros</name>
+  <name>habitat_ros</name>
   <version>0.0.0</version>
   <description>
     A ROS wrapper for Habitat-Sim
@@ -14,9 +14,14 @@
 
   <buildtool_depend version_gte="0.5.68">catkin</buildtool_depend>
 
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
 
+  <run_depend>geometry_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
 </package>
