@@ -26,7 +26,7 @@ endif()
 add_custom_target(habitat-sim ALL
     python3 setup.py install --prefix ~/.local --cmake-args="-DUSE_SYSTEM_ASSIMP=ON"
     VERBATIM
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/habitat-sim
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/habitat_sim
 )
 
 # Find catkin macros and libraries

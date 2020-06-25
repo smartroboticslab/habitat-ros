@@ -1,3 +1,3 @@
-[submodule "habitat-sim"]
-	path = habitat-sim
+[submodule "habitat_sim"]
+	path = habitat_sim
 	url = https://github.com/facebookresearch/habitat-sim.git
