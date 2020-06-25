@@ -30,10 +30,11 @@ def read_node_config() -> Dict:
     # Available parameter names and default values
     param_names = ['rgb_topic_name', 'depth_topic_name', 'semantics_topic_name',
         'habitat_pose_topic_name', 'external_pose_topic_name',
-        'external_pose_topic_type', 'scene_file', 'enable_external_pose']
+        'external_pose_topic_type', 'width', 'height', 'scene_file',
+        'enable_external_pose']
     param_default_values = ['/habitat/rgb', '/habitat/depth',
         '/habitat/semantics', '/habitat/pose', '/habitat/ext_pose',
-        'geometry_msgs::PoseStamped', '', False]
+        'geometry_msgs::PoseStamped', 640, 480, '', False]
     # Read the parameters
     config = {}
     for name, val in zip(param_names, param_default_values):
@@ -62,7 +63,7 @@ def color_sensor_config(config: Dict, sensor_name: str='color_sensor'):
     color_sensor_spec = hs.SensorSpec()
     color_sensor_spec.uuid = sensor_name
     color_sensor_spec.sensor_type = hs.SensorType.COLOR
-    color_sensor_spec.resolution = [480, 640]
+    color_sensor_spec.resolution = [config['height'], config['width']]
     # TODO set the position?
     # The left RGB sensor will be 1.5 meters off the ground
     # and 0.25 meters to the left of the center of the agent
@@ -75,7 +76,7 @@ def depth_sensor_config(config: Dict, sensor_name: str='depth_sensor'):
     depth_sensor_spec = hs.SensorSpec()
     depth_sensor_spec.uuid = sensor_name
     depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
-    depth_sensor_spec.resolution = [480, 640]
+    depth_sensor_spec.resolution = [config['height'], config['width']]
     return depth_sensor_spec
 
 
@@ -84,7 +85,7 @@ def semantic_sensor_config(config: Dict, sensor_name: str='semantic_sensor'):
     semantic_sensor_spec = hs.SensorSpec()
     semantic_sensor_spec.uuid = sensor_name
     semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
-    semantic_sensor_spec.resolution = [480, 640]
+    semantic_sensor_spec.resolution = [config['height'], config['width']]
     return semantic_sensor_spec
 
 
