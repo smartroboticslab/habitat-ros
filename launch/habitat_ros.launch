@@ -19,6 +19,8 @@
 
     <!-- Include rosparam yaml file -->
     <rosparam command="load" file="$(arg habitat_ros_config_file)"/>
+    <!-- Expand the library search path to find the libraries in habitat_sim -->
+    <!-- <env name="LD_LIBRARY_PATH" value="$(find habitat_ros)/habitat_sim/build/lib.linux-x86_64-3.8/habitat_sim/_ext:$LD_LIBRARY_PATH" /> -->
   </node>
 </launch>
 

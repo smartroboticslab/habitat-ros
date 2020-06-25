@@ -15,5 +15,6 @@ external_pose_topic_name: "/habitat/ext_pose"
 external_pose_topic_type: "geometry_msgs::PoseStamped"
 
 # Other settings
+scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
 enable_external_pose: false
 
