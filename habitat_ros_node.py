@@ -15,11 +15,11 @@ import numpy as np
 import rospkg
 import rospy
 
-from typing import Dict
+from typing import Dict, Tuple
 
 
 
-def print_node_config(config: Dict):
+def print_node_config(config: Dict) -> None:
     """Print a dictionary containing the configuration to the ROS info log"""
     rospy.loginfo('Habitat node parameters:')
     for name, val in config.items():
@@ -63,12 +63,12 @@ def read_node_config() -> Dict:
 
 
 
-def colour_sensor_config(config: Dict, sensor_name: str='colour'):
+def colour_sensor_config(config: Dict, name: str='colour') -> hs.SensorSpec:
     """Return the configuration for a Habitat color sensor"""
     # Documentation for SensorSpec here
     #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
     colour_sensor_spec = hs.SensorSpec()
-    colour_sensor_spec.uuid = sensor_name
+    colour_sensor_spec.uuid = name
     colour_sensor_spec.sensor_type = hs.SensorType.COLOR
     colour_sensor_spec.resolution = [config['height'], config['width']]
     # TODO set the position?
@@ -79,27 +79,27 @@ def colour_sensor_config(config: Dict, sensor_name: str='colour'):
 
 
 
-def depth_sensor_config(config: Dict, sensor_name: str='depth'):
+def depth_sensor_config(config: Dict, name: str='depth') -> hs.SensorSpec:
     """Return the configuration for a Habitat depth sensor"""
     depth_sensor_spec = hs.SensorSpec()
-    depth_sensor_spec.uuid = sensor_name
+    depth_sensor_spec.uuid = name
     depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
     depth_sensor_spec.resolution = [config['height'], config['width']]
     return depth_sensor_spec
 
 
 
-def semantic_sensor_config(config: Dict, sensor_name: str='semantics'):
+def semantic_sensor_config(config: Dict, name: str='semantics') -> hs.SensorSpec:
     """Return the configuration for a Habitat semantic sensor"""
     semantic_sensor_spec = hs.SensorSpec()
-    semantic_sensor_spec.uuid = sensor_name
+    semantic_sensor_spec.uuid = name
     semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
     semantic_sensor_spec.resolution = [config['height'], config['width']]
     return semantic_sensor_spec
 
 
 
-def init_habitat(config: Dict):
+def init_habitat(config: Dict) -> hs.Simulator:
     """Initialize the Habitat simulator with sensors and scene file"""
     backend_config = hs.SimulatorConfiguration()
     backend_config.scene.id = (config['scene_file'])
@@ -107,12 +107,12 @@ def init_habitat(config: Dict):
     agent_config.sensor_specifications = [colour_sensor_config(config),
             depth_sensor_config(config), semantic_sensor_config(config)]
     sim = hs.Simulator(hs.Configuration(backend_config, [agent_config]))
-    rospy.loginfo('Habitat initialized')
+    rospy.loginfo('Habitat simulator initialized')
     return sim
 
 
 
-def render(sim):
+def render(sim: hs.Simulator) -> None:
     for _ in range(100):
         # Just spin in a circle
         observation = sim.step("turn_right")
@@ -133,13 +133,17 @@ def render(sim):
 
 
 
-def run_node():
-    """Initialize and start the ROS node"""
-    # Read the node configuration
-    rospy.init_node('habitat_ros', anonymous=True)
+def init_node() -> Tuple[Dict, hs.Simulator]:
+    """Initialize the ROS node and Habitat simulator"""
+    rospy.init_node('habitat_ros')
     config = read_node_config()
-    # Initialize the habitat simulator
     sim = init_habitat(config)
+    return config, sim
+
+
+
+def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
+    """Start the ROS publisher node"""
     # TODO setup publishers and subscribers
     # TODO remove render from here
     render(sim)
@@ -147,9 +151,15 @@ def run_node():
 
 
 
+def main() -> None:
+    config, sim = init_node()
+    run_publisher_node(config, sim)
+
+
+
 if __name__ == "__main__":
     try:
-        run_node()
+        main()
     except rospy.ROSInterruptException:
         pass
 
