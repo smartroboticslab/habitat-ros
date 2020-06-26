@@ -63,19 +63,19 @@ def read_node_config() -> Dict:
 
 
 
-def colour_sensor_config(config: Dict, name: str='colour') -> hs.SensorSpec:
+def rgb_sensor_config(config: Dict, name: str='rgb') -> hs.SensorSpec:
     """Return the configuration for a Habitat color sensor"""
     # Documentation for SensorSpec here
     #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
-    colour_sensor_spec = hs.SensorSpec()
-    colour_sensor_spec.uuid = name
-    colour_sensor_spec.sensor_type = hs.SensorType.COLOR
-    colour_sensor_spec.resolution = [config['height'], config['width']]
+    rgb_sensor_spec = hs.SensorSpec()
+    rgb_sensor_spec.uuid = name
+    rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
+    rgb_sensor_spec.resolution = [config['height'], config['width']]
     # TODO set the position?
     # The left RGB sensor will be 1.5 meters off the ground
     # and 0.25 meters to the left of the center of the agent
-    #colour_sensor_spec.position = 1.5 * hs.geo.UP + 0.25 * hs.geo.LEFT
-    return colour_sensor_spec
+    #rgb_sensor_spec.position = 1.5 * hs.geo.UP + 0.25 * hs.geo.LEFT
+    return rgb_sensor_spec
 
 
 
@@ -104,7 +104,7 @@ def init_habitat(config: Dict) -> hs.Simulator:
     backend_config = hs.SimulatorConfiguration()
     backend_config.scene.id = (config['scene_file'])
     agent_config = hs.AgentConfiguration()
-    agent_config.sensor_specifications = [colour_sensor_config(config),
+    agent_config.sensor_specifications = [rgb_sensor_config(config),
             depth_sensor_config(config), semantic_sensor_config(config)]
     sim = hs.Simulator(hs.Configuration(backend_config, [agent_config]))
     rospy.loginfo('Habitat simulator initialized')
@@ -117,19 +117,19 @@ def render(sim: hs.Simulator) -> None:
         # Just spin in a circle
         observation = sim.step("turn_right")
         # Change from RGBA to RGB and then to BGR
-        colour_render = observation['colour'][..., 0:3][..., ::-1]
+        rgb_render = observation['rgb'][..., 0:3][..., ::-1]
         # Normalize the depth for visualization
         depth_render = np.clip(observation['depth'], 0.0, 10.0)
         depth_render /= 10.0
         depth_render = cv2.cvtColor(depth_render, cv2.COLOR_GRAY2RGB)
         # TODO render the semantics for visualization (create function)
         # Combine into a single render
-        render = np.concatenate([colour_render / 255.0, depth_render], axis=1)
+        render = np.concatenate([rgb_render / 255.0, depth_render], axis=1)
         cv2.imshow("render", render)
         k = cv2.waitKey()
         if k == ord("q"):
             break
-        # TODO Return the colour/depth/semantics
+        # TODO Return the rgb/depth/semantics
 
 
 
