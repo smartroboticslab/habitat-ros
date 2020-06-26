@@ -13,9 +13,9 @@ import rospkg
 import rospy
 
 from cv_bridge import CvBridge
+from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
 from typing import Dict, Tuple
-
 
 
 def print_node_config(config: Dict) -> None:
@@ -111,6 +111,23 @@ def init_habitat(config: Dict) -> hs.Simulator:
 
 
 
+def observation_to_posemsg(obs: hs.sensor.Observation) -> PoseStamped:
+    """Convert the agent pose in the observation to a PoseStamped message"""
+    p = PoseStamped()
+    p.header.frame_id = 'world'
+    # Return the current ROS time since the habitat simulator does not provide
+    # one
+    p.header.stamp = rospy.get_rostime()
+    p.pose.position.x = obs['t_WC'][0]
+    p.pose.position.y = obs['t_WC'][1]
+    p.pose.position.z = obs['t_WC'][2]
+    p.pose.orientation.x = obs['q_WC'].x
+    p.pose.orientation.y = obs['q_WC'].y
+    p.pose.orientation.z = obs['q_WC'].z
+    p.pose.orientation.w = obs['q_WC'].w
+    return p
+
+
 def render(sim: hs.Simulator) -> hs.sensor.Observation:
     # Just spin in a circle
     # TODO move in a more meaningful way
@@ -119,7 +136,11 @@ def render(sim: hs.Simulator) -> hs.sensor.Observation:
     observation['rgb'] = observation['rgb'][..., 0:3]
     # TODO process depth
     # TODO process semantics
-    # TODO return the groundtruth pose
+    # Return the agent ground truth position (t_WC) and orientation (q_WC)
+    # TODO convert to z-forward, x-right
+    observation['t_WC'] = sim.get_agent(0).get_state().position
+    observation['q_WC'] = sim.get_agent(0).get_state().rotation
+    # TODO Return the simulation timestamp. sim.get_world_time() returns 0
     return observation
 
 
@@ -137,18 +158,18 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
     # Setup the image and pose publishers
     rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
+    pose_pub = rospy.Publisher(config['habitat_pose_topic_name'], PoseStamped, queue_size=10)
     # TODO setup depth publisher
     # TODO setup semantics publisher
-    # TODO setup pose publisher
     # Main publishing loop
     # TODO decouple movement rate from camera framerate, read both from config
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         observation = render(sim)
         rgb_pub.publish(CvBridge().cv2_to_imgmsg(observation['rgb'], "rgb8"))
+        pose_pub.publish(observation_to_posemsg(observation))
         # TODO publish depth
         # TODO publish semantics
-        # TODO publish pose
         # TODO publish rgb/depth/semantics visualisations. Use $TOPICNAME_render
         rate.sleep()
 
