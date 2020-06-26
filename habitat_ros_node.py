@@ -3,9 +3,6 @@
 # SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
 
-# TODO function given a pose render the rgb depth and sem
-# TODO function to generate a valid random pose close the the given one
-
 import os
 import sys
 
@@ -15,6 +12,8 @@ import numpy as np
 import rospkg
 import rospy
 
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
 from typing import Dict, Tuple
 
 
@@ -112,24 +111,16 @@ def init_habitat(config: Dict) -> hs.Simulator:
 
 
 
-def render(sim: hs.Simulator) -> None:
-    for _ in range(100):
-        # Just spin in a circle
-        observation = sim.step("turn_right")
-        # Change from RGBA to RGB and then to BGR
-        rgb_render = observation['rgb'][..., 0:3][..., ::-1]
-        # Normalize the depth for visualization
-        depth_render = np.clip(observation['depth'], 0.0, 10.0)
-        depth_render /= 10.0
-        depth_render = cv2.cvtColor(depth_render, cv2.COLOR_GRAY2RGB)
-        # TODO render the semantics for visualization (create function)
-        # Combine into a single render
-        render = np.concatenate([rgb_render / 255.0, depth_render], axis=1)
-        cv2.imshow("render", render)
-        k = cv2.waitKey()
-        if k == ord("q"):
-            break
-        # TODO Return the rgb/depth/semantics
+def render(sim: hs.Simulator) -> hs.sensor.Observation:
+    # Just spin in a circle
+    # TODO move in a more meaningful way
+    observation = sim.step("turn_right")
+    # Change from RGBA to RGB
+    observation['rgb'] = observation['rgb'][..., 0:3]
+    # TODO process depth
+    # TODO process semantics
+    # TODO return the groundtruth pose
+    return observation
 
 
 
@@ -144,15 +135,28 @@ def init_node() -> Tuple[Dict, hs.Simulator]:
 
 def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
-    # TODO setup publishers and subscribers
-    # TODO remove render from here
-    render(sim)
-    rospy.spin()
+    # Setup the image and pose publishers
+    rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
+    # TODO setup depth publisher
+    # TODO setup semantics publisher
+    # TODO setup pose publisher
+    # Main publishing loop
+    # TODO decouple movement rate from camera framerate, read both from config
+    rate = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        observation = render(sim)
+        rgb_pub.publish(CvBridge().cv2_to_imgmsg(observation['rgb'], "rgb8"))
+        # TODO publish depth
+        # TODO publish semantics
+        # TODO publish pose
+        # TODO publish rgb/depth/semantics visualisations. Use $TOPICNAME_render
+        rate.sleep()
 
 
 
 def main() -> None:
     config, sim = init_node()
+    # TODO select whether to run publisher or service
     run_publisher_node(config, sim)
 
 
