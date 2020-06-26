@@ -57,22 +57,22 @@ def read_node_config() -> Dict:
 
 
 
-def color_sensor_config(config: Dict, sensor_name: str='color_sensor'):
+def colour_sensor_config(config: Dict, sensor_name: str='colour'):
     # Documentation for SensorSpec here
     #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
-    color_sensor_spec = hs.SensorSpec()
-    color_sensor_spec.uuid = sensor_name
-    color_sensor_spec.sensor_type = hs.SensorType.COLOR
-    color_sensor_spec.resolution = [config['height'], config['width']]
+    colour_sensor_spec = hs.SensorSpec()
+    colour_sensor_spec.uuid = sensor_name
+    colour_sensor_spec.sensor_type = hs.SensorType.COLOR
+    colour_sensor_spec.resolution = [config['height'], config['width']]
     # TODO set the position?
     # The left RGB sensor will be 1.5 meters off the ground
     # and 0.25 meters to the left of the center of the agent
-    #color_sensor_spec.position = 1.5 * hs.geo.UP + 0.25 * hs.geo.LEFT
-    return color_sensor_spec
+    #colour_sensor_spec.position = 1.5 * hs.geo.UP + 0.25 * hs.geo.LEFT
+    return colour_sensor_spec
 
 
 
-def depth_sensor_config(config: Dict, sensor_name: str='depth_sensor'):
+def depth_sensor_config(config: Dict, sensor_name: str='depth'):
     depth_sensor_spec = hs.SensorSpec()
     depth_sensor_spec.uuid = sensor_name
     depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
@@ -81,7 +81,7 @@ def depth_sensor_config(config: Dict, sensor_name: str='depth_sensor'):
 
 
 
-def semantic_sensor_config(config: Dict, sensor_name: str='semantic_sensor'):
+def semantic_sensor_config(config: Dict, sensor_name: str='semantics'):
     semantic_sensor_spec = hs.SensorSpec()
     semantic_sensor_spec.uuid = sensor_name
     semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
@@ -94,7 +94,7 @@ def init_habitat(config: Dict):
     backend_config = hs.SimulatorConfiguration()
     backend_config.scene.id = (config['scene_file'])
     agent_config = hs.AgentConfiguration()
-    agent_config.sensor_specifications = [color_sensor_config(config),
+    agent_config.sensor_specifications = [colour_sensor_config(config),
             depth_sensor_config(config), semantic_sensor_config(config)]
     sim = hs.Simulator(hs.Configuration(backend_config, [agent_config]))
     rospy.loginfo('Habitat initialized')
@@ -107,19 +107,19 @@ def render(sim):
         # Just spin in a circle
         observation = sim.step("turn_right")
         # Change from RGBA to RGB and then to BGR
-        color_render = observation['color_sensor'][..., 0:3][..., ::-1]
+        colour_render = observation['colour'][..., 0:3][..., ::-1]
         # Normalize the depth for visualization
-        depth_render = np.clip(observation['depth_sensor'], 0.0, 10.0)
+        depth_render = np.clip(observation['depth'], 0.0, 10.0)
         depth_render /= 10.0
         depth_render = cv2.cvtColor(depth_render, cv2.COLOR_GRAY2RGB)
         # TODO render the semantics for visualization (create function)
         # Combine into a single render
-        render = np.concatenate([color_render / 255.0, depth_render], axis=1)
+        render = np.concatenate([colour_render / 255.0, depth_render], axis=1)
         cv2.imshow("render", render)
         k = cv2.waitKey()
         if k == ord("q"):
             break
-        # TODO Return the color/depth/semantics
+        # TODO Return the colour/depth/semantics
 
 
 
