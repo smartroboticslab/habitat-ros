@@ -20,6 +20,7 @@ from typing import Dict
 
 
 def print_node_config(config: Dict):
+    """Print a dictionary containing the configuration to the ROS info log"""
     rospy.loginfo('Habitat node parameters:')
     for name, val in config.items():
         rospy.loginfo('  {: <25} {}'.format(name + ':', str(val)))
@@ -27,6 +28,7 @@ def print_node_config(config: Dict):
 
 
 def read_node_config() -> Dict:
+    """Read the node parameters, print them and return a dictionary"""
     # Available parameter names and default values
     param_names = ['rgb_topic_name', 'depth_topic_name', 'semantics_topic_name',
         'habitat_pose_topic_name', 'external_pose_topic_name',
@@ -35,17 +37,19 @@ def read_node_config() -> Dict:
     param_default_values = ['/habitat/rgb', '/habitat/depth',
         '/habitat/semantics', '/habitat/pose', '/habitat/ext_pose',
         'geometry_msgs::PoseStamped', 640, 480, '', False]
+
     # Read the parameters
     config = {}
     for name, val in zip(param_names, param_default_values):
         config[name] = rospy.get_param('~' + name, val)
+
     # Get an absolute path from the supplied scene file
     config['scene_file'] = os.path.expanduser(config['scene_file'])
     if not os.path.isabs(config['scene_file']):
         # The scene file path is relative, assuming relative to the ROS package
         package_path = rospkg.RosPack().get_path('habitat_ros') + '/'
         config['scene_file'] = package_path + config['scene_file']
-    print_node_config(config)
+
     # Ensure a valid scene file was supplied
     if not config['scene_file']:
         rospy.logfatal('No scene file supplied')
@@ -53,11 +57,14 @@ def read_node_config() -> Dict:
     elif not os.path.isfile(config['scene_file']):
         rospy.logfatal('Scene file ' + config['scene_file'] + ' does not exist')
         raise rospy.ROSException
+
+    print_node_config(config)
     return config
 
 
 
 def colour_sensor_config(config: Dict, sensor_name: str='colour'):
+    """Return the configuration for a Habitat color sensor"""
     # Documentation for SensorSpec here
     #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
     colour_sensor_spec = hs.SensorSpec()
@@ -73,6 +80,7 @@ def colour_sensor_config(config: Dict, sensor_name: str='colour'):
 
 
 def depth_sensor_config(config: Dict, sensor_name: str='depth'):
+    """Return the configuration for a Habitat depth sensor"""
     depth_sensor_spec = hs.SensorSpec()
     depth_sensor_spec.uuid = sensor_name
     depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
@@ -82,6 +90,7 @@ def depth_sensor_config(config: Dict, sensor_name: str='depth'):
 
 
 def semantic_sensor_config(config: Dict, sensor_name: str='semantics'):
+    """Return the configuration for a Habitat semantic sensor"""
     semantic_sensor_spec = hs.SensorSpec()
     semantic_sensor_spec.uuid = sensor_name
     semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
@@ -91,6 +100,7 @@ def semantic_sensor_config(config: Dict, sensor_name: str='semantics'):
 
 
 def init_habitat(config: Dict):
+    """Initialize the Habitat simulator with sensors and scene file"""
     backend_config = hs.SimulatorConfiguration()
     backend_config.scene.id = (config['scene_file'])
     agent_config = hs.AgentConfiguration()
@@ -124,6 +134,7 @@ def render(sim):
 
 
 def run_node():
+    """Initialize and start the ROS node"""
     # Read the node configuration
     rospy.init_node('habitat_ros', anonymous=True)
     config = read_node_config()
