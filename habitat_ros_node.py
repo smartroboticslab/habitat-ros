@@ -116,6 +116,11 @@ def rgb_to_msg(rgb: np.ndarray) -> Image:
 
 
 
+def depth_to_msg(depth: np.ndarray) -> Image:
+    return CvBridge().cv2_to_imgmsg(depth, "32FC1")
+
+
+
 def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
     """Convert the agent pose in the observation to a PoseStamped message"""
     position = T_WB[0:3, 3]
@@ -123,7 +128,7 @@ def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
     p = PoseStamped()
     p.header.frame_id = 'map'
     # Return the current ROS time since the habitat simulator does not provide
-    # one
+    # one. sim.get_world_time() always returns 0
     p.header.stamp = rospy.get_rostime()
     p.pose.position.x = position[0]
     p.pose.position.y = position[1]
@@ -144,7 +149,6 @@ def render(sim: hs.Simulator) -> hs.sensor.Observation:
     observation = sim.step("move_forward")
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
-    # TODO process depth
     # TODO process semantics
     # Get the camera ground truth pose (T_HC) in the habitat frame from the
     # position and orientation
@@ -164,7 +168,6 @@ def render(sim: hs.Simulator) -> hs.sensor.Observation:
             (-1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
     T_WB = np.matmul(T_WC, T_CB)
     observation['T_WB'] = T_WB
-    # TODO Return the simulation timestamp. sim.get_world_time() returns 0
     return observation
 
 
@@ -182,8 +185,8 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
     # Setup the image and pose publishers
     rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
+    depth_pub = rospy.Publisher(config['depth_topic_name'], Image, queue_size=10)
     pose_pub = rospy.Publisher(config['habitat_pose_topic_name'], PoseStamped, queue_size=10)
-    # TODO setup depth publisher
     # TODO setup semantics publisher
     # Main publishing loop
     # TODO decouple movement rate from camera framerate, read both from config
@@ -191,8 +194,8 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
     while not rospy.is_shutdown():
         observation = render(sim)
         rgb_pub.publish(rgb_to_msg(observation['rgb']))
+        depth_pub.publish(depth_to_msg(observation['depth']))
         pose_pub.publish(pose_to_msg(observation['T_WB']))
-        # TODO publish depth
         # TODO publish semantics
         # TODO publish rgb/depth/semantics visualisations. Use $TOPICNAME_render
         rate.sleep()
