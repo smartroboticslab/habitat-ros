@@ -111,10 +111,15 @@ def init_habitat(config: Dict) -> hs.Simulator:
 
 
 
-def observation_to_posemsg(obs: hs.sensor.Observation) -> PoseStamped:
+def rgb_to_msg(rgb: np.ndarray) -> Image:
+    return CvBridge().cv2_to_imgmsg(rgb, "rgb8")
+
+
+
+def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
     """Convert the agent pose in the observation to a PoseStamped message"""
-    position = obs['T_WB'][0:3, 3]
-    orientation = quaternion.from_rotation_matrix(obs['T_WB'][0:3, 0:3])
+    position = T_WB[0:3, 3]
+    orientation = quaternion.from_rotation_matrix(T_WB[0:3, 0:3])
     p = PoseStamped()
     p.header.frame_id = 'map'
     # Return the current ROS time since the habitat simulator does not provide
@@ -185,8 +190,8 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         observation = render(sim)
-        rgb_pub.publish(CvBridge().cv2_to_imgmsg(observation['rgb'], "rgb8"))
-        pose_pub.publish(observation_to_posemsg(observation))
+        rgb_pub.publish(rgb_to_msg(observation['rgb']))
+        pose_pub.publish(pose_to_msg(observation['T_WB']))
         # TODO publish depth
         # TODO publish semantics
         # TODO publish rgb/depth/semantics visualisations. Use $TOPICNAME_render
