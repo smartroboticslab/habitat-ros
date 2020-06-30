@@ -7,7 +7,8 @@
 # Published topics
 rgb_topic_name: "/habitat/rgb"
 depth_topic_name: "/habitat/depth"
-semantics_topic_name: "/habitat/semantics"
+semantic_class_topic_name: "/habitat/semantic_class"
+semantic_instance_topic_name: "/habitat/semantic_instance"
 habitat_pose_topic_name: "/habitat/pose"
 
 # Subscribed topics
