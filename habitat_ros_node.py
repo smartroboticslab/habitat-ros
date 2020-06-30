@@ -67,6 +67,53 @@ class_id_to_name = {
 
 
 
+class_colors = np.array([
+    [0xff, 0xff, 0xff],
+    [0xae, 0xc7, 0xe8],
+    [0x70, 0x80, 0x90],
+    [0x98, 0xdf, 0x8a],
+    [0xc5, 0xb0, 0xd5],
+    [0xff, 0x7f, 0x0e],
+    [0xd6, 0x27, 0x28],
+    [0x1f, 0x77, 0xb4],
+    [0xbc, 0xbd, 0x22],
+    [0xff, 0x98, 0x96],
+    [0x2c, 0xa0, 0x2c],
+    [0xe3, 0x77, 0xc2],
+    [0xde, 0x9e, 0xd6],
+    [0x94, 0x67, 0xbd],
+    [0x8c, 0xa2, 0x52],
+    [0x84, 0x3c, 0x39],
+    [0x9e, 0xda, 0xe5],
+    [0x9c, 0x9e, 0xde],
+    [0xe7, 0x96, 0x9c],
+    [0x63, 0x79, 0x39],
+    [0x8c, 0x56, 0x4b],
+    [0xdb, 0xdb, 0x8d],
+    [0xd6, 0x61, 0x6b],
+    [0xce, 0xdb, 0x9c],
+    [0xe7, 0xba, 0x52],
+    [0x39, 0x3b, 0x79],
+    [0xa5, 0x51, 0x94],
+    [0xad, 0x49, 0x4a],
+    [0xb5, 0xcf, 0x6b],
+    [0x52, 0x54, 0xa3],
+    [0xbd, 0x9e, 0x39],
+    [0xc4, 0x9c, 0x94],
+    [0xf7, 0xb6, 0xd2],
+    [0x6b, 0x6e, 0xcf],
+    [0xff, 0xbb, 0x78],
+    [0xc7, 0xc7, 0xc7],
+    [0x8c, 0x6d, 0x31],
+    [0xe7, 0xcb, 0x94],
+    [0xce, 0x6d, 0xbd],
+    [0x17, 0xbe, 0xcf],
+    [0x7f, 0x7f, 0x7f],
+    [0x00, 0x00, 0x00]
+])
+
+
+
 _bridge = CvBridge()
 
 
@@ -86,11 +133,11 @@ def read_node_config() -> Dict:
         'semantic_class_topic_name', 'semantic_instance_topic_name',
         'habitat_pose_topic_name', 'external_pose_topic_name',
         'external_pose_topic_type', 'width', 'height', 'scene_file',
-        'enable_external_pose']
+        'enable_external_pose', 'visualize_semantics']
     param_default_values = ['/habitat/rgb', '/habitat/depth',
         '/habitat/semantic_class', '/habitat/semantic_instance',
         '/habitat/pose', '/habitat/ext_pose', 'geometry_msgs::PoseStamped',
-        640, 480, '', False]
+        640, 480, '', False, False]
 
     # Read the parameters
     config = {}
@@ -206,6 +253,26 @@ def sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
 
 
 
+def render_sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
+    color_img_shape = [sem_instances.shape[0], sem_instances.shape[1] , 3]
+    color_img = np.zeros(color_img_shape, dtype=np.uint8)
+    for y in range(color_img.shape[1]):
+        for x in range(color_img.shape[0]):
+            color_img[x, y, :] = class_colors[sem_instances[x, y] % 41, :]
+    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "8UC3")
+
+
+
+def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
+    color_img_shape = [sem_classes.shape[0], sem_classes.shape[1] , 3]
+    color_img = np.zeros(color_img_shape, dtype=np.uint8)
+    for y in range(color_img.shape[1]):
+        for x in range(color_img.shape[0]):
+            color_img[x, y, :] = class_colors[sem_classes[x, y] % 41, :]
+    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "8UC3")
+
+
+
 def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Observation:
     # Just spin in a circle
     # TODO move in a more meaningful way
@@ -216,15 +283,16 @@ def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Ob
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
 
-    # Assuming the scene has no more than 65534 objects
-    observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint32), 0, 65535)
-    del observation['semantics']
-    # Convert instance IDs to class IDs
-    observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
-    for y in range(observation['sem_classes'].shape[1]):
-        for x in range(observation['sem_classes'].shape[0]):
-            observation['sem_classes'][x, y] = instance_to_class[observation['sem_instances'][x, y]]
-    observation['sem_classes'] = observation['sem_instances'].astype(np.uint8)
+    if instance_to_class:
+        # Assuming the scene has no more than 65534 objects
+        observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint32), 0, 65535)
+        del observation['semantics']
+        # Convert instance IDs to class IDs
+        observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
+        for y in range(observation['sem_classes'].shape[1]):
+            for x in range(observation['sem_classes'].shape[0]):
+                observation['sem_classes'][x, y] = instance_to_class[observation['sem_instances'][x, y]]
+        observation['sem_classes'] = observation['sem_instances'].astype(np.uint8)
 
     # Get the camera ground truth pose (T_HC) in the habitat frame from the
     # position and orientation
@@ -278,6 +346,9 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
         # Only publish semantics if the scene contains semantics
         sem_class_pub = rospy.Publisher(config['semantic_class_topic_name'], Image, queue_size=10)
         sem_instance_pub = rospy.Publisher(config['semantic_instance_topic_name'], Image, queue_size=10)
+        if config['visualize_semantics']:
+            sem_class_render_pub = rospy.Publisher(config['semantic_class_topic_name'] + '_render', Image, queue_size=10)
+            sem_instance_render_pub = rospy.Publisher(config['semantic_instance_topic_name'] + '_render', Image, queue_size=10)
     else:
         rospy.logwarn('The scene contains no semantics')
 
@@ -292,7 +363,10 @@ def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
         if instance_to_class:
             sem_class_pub.publish(sem_classes_to_msg(observation['sem_classes']))
             sem_instance_pub.publish(sem_instances_to_msg(observation['sem_instances']))
-        # TODO publish semantics visualisation. Use $TOPICNAME_render
+            # Publish semantics visualisations
+            if config['visualize_semantics']:
+                sem_class_render_pub.publish(render_sem_classes_to_msg(observation['sem_classes']))
+                sem_instance_render_pub.publish(render_sem_instances_to_msg(observation['sem_instances']))
         rate.sleep()
 
 

@@ -22,4 +22,5 @@ height: 480
 # Other settings
 scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
 enable_external_pose: false
+visualize_semantics: false
 
