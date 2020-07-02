@@ -15,7 +15,12 @@ import rospy
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
+
+
+
+# Custom type definitions
+Config = Dict[str, Any]
 
 
 
@@ -65,8 +70,7 @@ class_id_to_name = {
     41: 'unlabeled',
 }
 
-
-
+# Matterport3D class RGB colors
 class_colors = np.array([
     [0xff, 0xff, 0xff],
     [0xae, 0xc7, 0xe8],
@@ -112,13 +116,12 @@ class_colors = np.array([
     [0x00, 0x00, 0x00]
 ])
 
-
-
+# Instantiate a single CvBridge object for all conversions
 _bridge = CvBridge()
 
 
 
-def print_node_config(config: Dict) -> None:
+def print_node_config(config: Config) -> None:
     """Print a dictionary containing the configuration to the ROS info log"""
     rospy.loginfo('Habitat node parameters:')
     for name, val in config.items():
@@ -126,7 +129,7 @@ def print_node_config(config: Dict) -> None:
 
 
 
-def read_node_config() -> Dict:
+def read_node_config() -> Config:
     """Read the node parameters, print them and return a dictionary"""
     # Available parameter names and default values
     param_names = ['rgb_topic_name', 'depth_topic_name',
@@ -164,7 +167,7 @@ def read_node_config() -> Dict:
 
 
 
-def rgb_sensor_config(config: Dict, name: str='rgb') -> hs.SensorSpec:
+def rgb_sensor_config(config: Config, name: str='rgb') -> hs.SensorSpec:
     """Return the configuration for a Habitat color sensor"""
     # Documentation for SensorSpec here
     #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
@@ -180,7 +183,7 @@ def rgb_sensor_config(config: Dict, name: str='rgb') -> hs.SensorSpec:
 
 
 
-def depth_sensor_config(config: Dict, name: str='depth') -> hs.SensorSpec:
+def depth_sensor_config(config: Config, name: str='depth') -> hs.SensorSpec:
     """Return the configuration for a Habitat depth sensor"""
     depth_sensor_spec = hs.SensorSpec()
     depth_sensor_spec.uuid = name
@@ -190,7 +193,7 @@ def depth_sensor_config(config: Dict, name: str='depth') -> hs.SensorSpec:
 
 
 
-def semantic_sensor_config(config: Dict, name: str='semantics') -> hs.SensorSpec:
+def semantic_sensor_config(config: Config, name: str='semantics') -> hs.SensorSpec:
     """Return the configuration for a Habitat semantic sensor"""
     semantic_sensor_spec = hs.SensorSpec()
     semantic_sensor_spec.uuid = name
@@ -200,7 +203,7 @@ def semantic_sensor_config(config: Dict, name: str='semantics') -> hs.SensorSpec
 
 
 
-def init_habitat(config: Dict) -> hs.Simulator:
+def init_habitat(config: Config) -> hs.Simulator:
     """Initialize the Habitat simulator with sensors and scene file"""
     backend_config = hs.SimulatorConfiguration()
     backend_config.scene.id = (config['scene_file'])
@@ -333,7 +336,7 @@ def init_node() -> Tuple[Dict, hs.Simulator]:
 
 
 
-def run_publisher_node(config: Dict, sim: hs.Simulator) -> None:
+def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
     # Setup the instance/class conversion map
     instance_to_class = generate_instance_to_class_map(sim.semantic_scene.objects)
