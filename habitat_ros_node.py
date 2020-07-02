@@ -285,7 +285,7 @@ def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Ob
 
     if instance_to_class:
         # Assuming the scene has no more than 65534 objects
-        observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint32), 0, 65535)
+        observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint16), 0, 65535)
         del observation['semantics']
         # Convert instance IDs to class IDs
         observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
