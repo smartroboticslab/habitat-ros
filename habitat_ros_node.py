@@ -133,14 +133,15 @@ def read_node_config() -> Config:
     """Read the node parameters, print them and return a dictionary"""
     # Available parameter names and default values
     param_names = ['rgb_topic_name', 'depth_topic_name',
-        'semantic_class_topic_name', 'semantic_instance_topic_name',
-        'habitat_pose_topic_name', 'external_pose_topic_name',
-        'external_pose_topic_type', 'width', 'height', 'scene_file',
-        'enable_external_pose', 'visualize_semantics']
+            'semantic_class_topic_name', 'semantic_instance_topic_name',
+            'habitat_pose_topic_name', 'external_pose_topic_name',
+            'external_pose_topic_type', 'width', 'height', 'scene_file',
+            'publisher_rate', 'enable_external_pose', 'enable_semantics',
+            'visualize_semantics']
     param_default_values = ['/habitat/rgb', '/habitat/depth',
-        '/habitat/semantic_class', '/habitat/semantic_instance',
-        '/habitat/pose', '/habitat/ext_pose', 'geometry_msgs::PoseStamped',
-        640, 480, '', False, False]
+            '/habitat/semantic_class', '/habitat/semantic_instance',
+            '/habitat/pose', '/habitat/ext_pose', 'geometry_msgs::PoseStamped',
+            640, 480, '', 0, False, False, False]
 
     # Read the parameters
     config = {}
@@ -276,7 +277,7 @@ def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
 
 
 
-def render(sim: hs.Simulator, instance_to_class: np.ndarray) -> hs.sensor.Observation:
+def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
     # Just spin in a circle
     # TODO move in a more meaningful way
     observation = sim.step("turn_right")
@@ -286,7 +287,7 @@ def render(sim: hs.Simulator, instance_to_class: np.ndarray) -> hs.sensor.Observ
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
 
-    if instance_to_class.size > 0:
+    if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Assuming the scene has no more than 65534 objects
         observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint16), 0, 65535)
         del observation['semantics']
@@ -294,7 +295,7 @@ def render(sim: hs.Simulator, instance_to_class: np.ndarray) -> hs.sensor.Observ
         observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
         for y in range(observation['sem_classes'].shape[1]):
             for x in range(observation['sem_classes'].shape[0]):
-                observation['sem_classes'][x, y] = instance_to_class[observation['sem_instances'][x, y]]
+                observation['sem_classes'][x, y] = config['instance_to_class'][observation['sem_instances'][x, y]]
         observation['sem_classes'] = observation['sem_instances'].astype(np.uint8)
 
     # Get the camera ground truth pose (T_HC) in the habitat frame from the
@@ -339,38 +340,40 @@ def init_node() -> Tuple[Dict, hs.Simulator]:
 def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
     # Setup the instance/class conversion map
-    instance_to_class = generate_instance_to_class_map(sim.semantic_scene.objects)
+    config['instance_to_class'] = generate_instance_to_class_map(sim.semantic_scene.objects)
+    if config['enable_semantics'] and config['instance_to_class'].size == 0:
+        rospy.logwarn('The scene contains no semantics')
 
     # Setup the image and pose publishers
     pose_pub = rospy.Publisher(config['habitat_pose_topic_name'], PoseStamped, queue_size=10)
     rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
     depth_pub = rospy.Publisher(config['depth_topic_name'], Image, queue_size=10)
-    if instance_to_class.size > 0:
+    if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Only publish semantics if the scene contains semantics
         sem_class_pub = rospy.Publisher(config['semantic_class_topic_name'], Image, queue_size=10)
         sem_instance_pub = rospy.Publisher(config['semantic_instance_topic_name'], Image, queue_size=10)
         if config['visualize_semantics']:
             sem_class_render_pub = rospy.Publisher(config['semantic_class_topic_name'] + '_render', Image, queue_size=10)
             sem_instance_render_pub = rospy.Publisher(config['semantic_instance_topic_name'] + '_render', Image, queue_size=10)
-    else:
-        rospy.logwarn('The scene contains no semantics')
 
     # Main publishing loop
     # TODO decouple movement rate from camera framerate, read both from config
-    rate = rospy.Rate(10)
+    if config['publisher_rate'] > 0:
+        rate = rospy.Rate(config['publisher_rate'])
     while not rospy.is_shutdown():
-        observation = render(sim, instance_to_class)
+        observation = render(sim, config)
         pose_pub.publish(pose_to_msg(observation['T_WB']))
         rgb_pub.publish(rgb_to_msg(observation['rgb']))
         depth_pub.publish(depth_to_msg(observation['depth']))
-        if instance_to_class.size > 0:
+        if config['enable_semantics'] and config['instance_to_class'].size > 0:
             sem_class_pub.publish(sem_classes_to_msg(observation['sem_classes']))
             sem_instance_pub.publish(sem_instances_to_msg(observation['sem_instances']))
             # Publish semantics visualisations
             if config['visualize_semantics']:
                 sem_class_render_pub.publish(render_sem_classes_to_msg(observation['sem_classes']))
                 sem_instance_render_pub.publish(render_sem_instances_to_msg(observation['sem_instances']))
-        rate.sleep()
+        if config['publisher_rate'] > 0:
+            rate.sleep()
 
 
 
