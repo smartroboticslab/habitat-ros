@@ -4,13 +4,6 @@
 
 # Habitat-ROS node settings
 
-# Published topics
-rgb_topic_name: "/habitat/rgb"
-depth_topic_name: "/habitat/depth"
-semantic_class_topic_name: "/habitat/semantic_class"
-semantic_instance_topic_name: "/habitat/semantic_instance"
-habitat_pose_topic_name: "/habitat/pose"
-
 # Subscribed topics
 external_pose_topic_name: "/habitat/ext_pose"
 external_pose_topic_type: "geometry_msgs::PoseStamped"

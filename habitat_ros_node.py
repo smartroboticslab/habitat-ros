@@ -118,6 +118,12 @@ class_colors = np.array([
 
 # Instantiate a single CvBridge object for all conversions
 _bridge = CvBridge()
+# Published topic names
+_rgb_topic_name = '/habitat/rgb'
+_depth_topic_name = '/habitat/depth'
+_semantic_class_topic_name = '/habitat/semantic_class'
+_semantic_instance_topic_name = '/habitat/semantic_instance'
+_habitat_pose_topic_name = '/habitat/pose'
 
 
 
@@ -132,15 +138,10 @@ def print_node_config(config: Config) -> None:
 def read_node_config() -> Config:
     """Read the node parameters, print them and return a dictionary"""
     # Available parameter names and default values
-    param_names = ['rgb_topic_name', 'depth_topic_name',
-            'semantic_class_topic_name', 'semantic_instance_topic_name',
-            'habitat_pose_topic_name', 'external_pose_topic_name',
-            'external_pose_topic_type', 'width', 'height', 'scene_file',
-            'publisher_rate', 'enable_external_pose', 'enable_semantics',
-            'visualize_semantics']
-    param_default_values = ['/habitat/rgb', '/habitat/depth',
-            '/habitat/semantic_class', '/habitat/semantic_instance',
-            '/habitat/pose', '/habitat/ext_pose', 'geometry_msgs::PoseStamped',
+    param_names = ['external_pose_topic_name', 'external_pose_topic_type',
+            'width', 'height', 'scene_file', 'publisher_rate',
+            'enable_external_pose', 'enable_semantics', 'visualize_semantics']
+    param_default_values = ['/habitat/ext_pose', 'geometry_msgs::PoseStamped',
             640, 480, '', 0, False, False, False]
 
     # Read the parameters
@@ -368,16 +369,16 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
         rospy.logwarn('The scene contains no semantics')
 
     # Setup the image and pose publishers
-    pose_pub = rospy.Publisher(config['habitat_pose_topic_name'], PoseStamped, queue_size=10)
-    rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
-    depth_pub = rospy.Publisher(config['depth_topic_name'], Image, queue_size=10)
+    pose_pub = rospy.Publisher(_habitat_pose_topic_name, PoseStamped, queue_size=10)
+    rgb_pub = rospy.Publisher(_rgb_topic_name, Image, queue_size=10)
+    depth_pub = rospy.Publisher(_depth_topic_name, Image, queue_size=10)
     if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Only publish semantics if the scene contains semantics
-        sem_class_pub = rospy.Publisher(config['semantic_class_topic_name'], Image, queue_size=10)
-        sem_instance_pub = rospy.Publisher(config['semantic_instance_topic_name'], Image, queue_size=10)
+        sem_class_pub = rospy.Publisher(_semantic_class_topic_name, Image, queue_size=10)
+        sem_instance_pub = rospy.Publisher(_semantic_instance_topic_name, Image, queue_size=10)
         if config['visualize_semantics']:
-            sem_class_render_pub = rospy.Publisher(config['semantic_class_topic_name'] + '_render', Image, queue_size=10)
-            sem_instance_render_pub = rospy.Publisher(config['semantic_instance_topic_name'] + '_render', Image, queue_size=10)
+            sem_class_render_pub = rospy.Publisher(_semantic_class_topic_name + '_render', Image, queue_size=10)
+            sem_instance_render_pub = rospy.Publisher(_semantic_instance_topic_name + '_render', Image, queue_size=10)
 
     # Main publishing loop
     # TODO decouple movement rate from camera framerate, read both from config
