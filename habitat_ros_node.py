@@ -276,7 +276,7 @@ def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
 
 
 
-def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Observation:
+def render(sim: hs.Simulator, instance_to_class: np.ndarray) -> hs.sensor.Observation:
     # Just spin in a circle
     # TODO move in a more meaningful way
     observation = sim.step("turn_right")
@@ -286,7 +286,7 @@ def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Ob
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
 
-    if instance_to_class:
+    if instance_to_class.size > 0:
         # Assuming the scene has no more than 65534 objects
         observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint16), 0, 65535)
         del observation['semantics']
@@ -319,8 +319,8 @@ def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Ob
 
 
 
-def generate_instance_to_class_map(objects: List[hs.scene.SemanticObject]) -> Dict[int, int]:
-    map = {}
+def generate_instance_to_class_map(objects: List[hs.scene.SemanticObject]) -> np.ndarray:
+    map = np.zeros(len(objects), dtype=np.uint8)
     for instance_id in range(len(objects)):
         map[instance_id] = objects[instance_id].category.index()
     return map
@@ -345,7 +345,7 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     pose_pub = rospy.Publisher(config['habitat_pose_topic_name'], PoseStamped, queue_size=10)
     rgb_pub = rospy.Publisher(config['rgb_topic_name'], Image, queue_size=10)
     depth_pub = rospy.Publisher(config['depth_topic_name'], Image, queue_size=10)
-    if instance_to_class:
+    if instance_to_class.size > 0:
         # Only publish semantics if the scene contains semantics
         sem_class_pub = rospy.Publisher(config['semantic_class_topic_name'], Image, queue_size=10)
         sem_instance_pub = rospy.Publisher(config['semantic_instance_topic_name'], Image, queue_size=10)
@@ -363,7 +363,7 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
         pose_pub.publish(pose_to_msg(observation['T_WB']))
         rgb_pub.publish(rgb_to_msg(observation['rgb']))
         depth_pub.publish(depth_to_msg(observation['depth']))
-        if instance_to_class:
+        if instance_to_class.size > 0:
             sem_class_pub.publish(sem_classes_to_msg(observation['sem_classes']))
             sem_instance_pub.publish(sem_instances_to_msg(observation['sem_instances']))
             # Publish semantics visualisations
