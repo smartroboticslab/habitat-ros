@@ -170,16 +170,10 @@ def read_node_config() -> Config:
 
 def rgb_sensor_config(config: Config, name: str='rgb') -> hs.SensorSpec:
     """Return the configuration for a Habitat color sensor"""
-    # Documentation for SensorSpec here
-    #   https://aihabitat.org/docs/habitat-sim/habitat_sim.sensor.SensorSpec.html
     rgb_sensor_spec = hs.SensorSpec()
     rgb_sensor_spec.uuid = name
     rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
     rgb_sensor_spec.resolution = [config['height'], config['width']]
-    # TODO set the position?
-    # The left RGB sensor will be 1.5 meters off the ground
-    # and 0.25 meters to the left of the center of the agent
-    #rgb_sensor_spec.position = 1.5 * hs.geo.UP + 0.25 * hs.geo.LEFT
     return rgb_sensor_spec
 
 
@@ -238,28 +232,34 @@ def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
 
 
 def rgb_to_msg(rgb: np.ndarray) -> Image:
+    """Convert RGB image to ROS Image message"""
     return _bridge.cv2_to_imgmsg(rgb, "rgb8")
 
 
 
 def depth_to_msg(depth: np.ndarray) -> Image:
+    """Convert depth image to ROS Image message"""
     return _bridge.cv2_to_imgmsg(depth, "32FC1")
 
 
 
 def sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
+    """Convert instance ID image to ROS Image message"""
     return _bridge.cv2_to_imgmsg(sem_instances.astype(np.uint16), "16UC1")
 
 
 
 def sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
+    """Convert class ID image to ROS Image message"""
     return _bridge.cv2_to_imgmsg(sem_classes.astype(np.uint8), "8UC1")
 
 
 
 def render_sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
+    """Render an instance ID image to a ROS Image message with pretty colours"""
     color_img_shape = [sem_instances.shape[0], sem_instances.shape[1] , 3]
     color_img = np.zeros(color_img_shape, dtype=np.uint8)
+    # TODO make this conversion more efficient
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
             color_img[x, y, :] = class_colors[sem_instances[x, y] % 41, :]
@@ -268,8 +268,10 @@ def render_sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
 
 
 def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
+    """Render a class ID image to a ROS Image message with pretty colours"""
     color_img_shape = [sem_classes.shape[0], sem_classes.shape[1] , 3]
     color_img = np.zeros(color_img_shape, dtype=np.uint8)
+    # TODO make this conversion more efficient
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
             color_img[x, y, :] = class_colors[sem_classes[x, y] % 41, :]
@@ -278,6 +280,7 @@ def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
 
 
 def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
+    """Move the camera and return the sensor observations and ground truth pose"""
     # Just spin in a circle
     # TODO move in a more meaningful way
     observation = sim.step("turn_right")
@@ -293,6 +296,7 @@ def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
         del observation['semantics']
         # Convert instance IDs to class IDs
         observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
+        # TODO make this conversion more efficient
         for y in range(observation['sem_classes'].shape[1]):
             for x in range(observation['sem_classes'].shape[0]):
                 observation['sem_classes'][x, y] = config['instance_to_class'][observation['sem_instances'][x, y]]
@@ -321,6 +325,8 @@ def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
 
 
 def generate_instance_to_class_map(objects: List[hs.scene.SemanticObject]) -> np.ndarray:
+    """Given the objects in the scene, create an array that maps instance IDs to
+    class IDs"""
     map = np.zeros(len(objects), dtype=np.uint8)
     for instance_id in range(len(objects)):
         map[instance_id] = objects[instance_id].category.index()
