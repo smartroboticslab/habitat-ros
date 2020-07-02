@@ -281,11 +281,18 @@ def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
 
 def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
     """Move the camera and return the sensor observations and ground truth pose"""
-    # Just spin in a circle
     # TODO move in a more meaningful way
-    observation = sim.step("turn_right")
-    observation = sim.step("move_forward")
-    observation = sim.step("move_forward")
+    if '1LXtFkjw3qL' in config['scene_file']:
+        # Show a scene for debugging instances/classes
+        agent = sim.get_agent(0)
+        agent_state = hs.agent.AgentState([0.0239539,-2.91559,6.6636], [0, -0.77301, 0, -0.634393])
+        agent.set_state(agent_state)
+        observation = sim.get_sensor_observations()
+    else:
+        # Move around in circles
+        sim.step("turn_right")
+        sim.step("move_forward")
+        observation = sim.step("move_forward")
 
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
