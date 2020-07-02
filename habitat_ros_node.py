@@ -263,7 +263,7 @@ def render_sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
             color_img[x, y, :] = class_colors[sem_instances[x, y] % 41, :]
-    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "8UC3")
+    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
 
 
 
@@ -274,8 +274,8 @@ def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
     # TODO make this conversion more efficient
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
-            color_img[x, y, :] = class_colors[sem_classes[x, y] % 41, :]
-    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "8UC3")
+            color_img[x, y, :] = class_colors[sem_classes[x, y], :]
+    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
 
 
 
@@ -307,7 +307,7 @@ def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
         for y in range(observation['sem_classes'].shape[1]):
             for x in range(observation['sem_classes'].shape[0]):
                 observation['sem_classes'][x, y] = config['instance_to_class'][observation['sem_instances'][x, y]]
-        observation['sem_classes'] = observation['sem_instances'].astype(np.uint8)
+        observation['sem_classes'] = observation['sem_classes'].astype(np.uint8)
 
     # Get the camera ground truth pose (T_HC) in the habitat frame from the
     # position and orientation
@@ -337,6 +337,11 @@ def generate_instance_to_class_map(objects: List[hs.scene.SemanticObject]) -> np
     map = np.zeros(len(objects), dtype=np.uint8)
     for instance_id in range(len(objects)):
         map[instance_id] = objects[instance_id].category.index()
+        if map[instance_id] > 40:
+            rospy.logwarn(''.join(['Invalid object class ID/name: ',
+                str(map[instance_id]), '/"',
+                objects[instance_id].category.name(), '"\nReplacing with 0']))
+            map[instance_id] = 0
     return map
 
 
