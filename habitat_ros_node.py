@@ -305,12 +305,12 @@ def render(sim: hs.Simulator, instance_to_class: Dict[int, int]) -> hs.sensor.Ob
     T_WH = np.identity(4)
     T_WH[0:3, 0:3] = quaternion.as_rotation_matrix(hs.utils.common.quat_from_two_vectors(
             hs.geo.GRAVITY, np.array([0.0, 0.0, -1.0])))
-    T_WC = np.matmul(T_WH, T_HC)
+    T_WC = np.dot(T_WH, T_HC)
     # Change from the camera frame (-z-forward, y-up) to the ROS body frame
     # (x-forward, z-up)
     T_CB = np.array([(0.0, -1.0, 0.0, 0.0), (0.0, 0.0, 1.0, 0.0),
             (-1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
-    T_WB = np.matmul(T_WC, T_CB)
+    T_WB = np.dot(T_WC, T_CB)
     observation['T_WB'] = T_WB
     return observation
 
