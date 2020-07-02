@@ -206,6 +206,11 @@ def init_habitat(config: Config) -> hs.Simulator:
     agent_config.sensor_specifications = [rgb_sensor_config(config),
             depth_sensor_config(config), semantic_sensor_config(config)]
     sim = hs.Simulator(hs.Configuration(backend_config, [agent_config]))
+    # Get the intrinsic camera parameters
+    hfov = float(agent_config.sensor_specifications[0].parameters['hfov'])
+    fx = 1.0 / np.tan(hfov / 2.0)
+    config['K'] = np.array([[fx, 0.0, 0.0, 0.0], [0.0, fx, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
     rospy.loginfo('Habitat simulator initialized')
     return sim
 
