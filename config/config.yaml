@@ -5,8 +5,7 @@
 # Habitat-ROS node settings
 
 # Subscribed topics
-external_pose_topic_name: "/habitat/ext_pose"
-external_pose_topic_type: "geometry_msgs::PoseStamped"
+external_pose_topic_name: "/habitat/external_pose"
 
 # Sensor settings
 width: 640
@@ -14,8 +13,9 @@ height: 480
 
 # Other settings
 scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
-publisher_rate: 0
-enable_external_pose: false
+#scene_file: "~/Documents/Datasets/Matterport3D/v1/tasks/mp3d_habitat/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb"
+publisher_rate: 30
+enable_external_pose: true
 enable_semantics: false
 visualize_semantics: false
 
