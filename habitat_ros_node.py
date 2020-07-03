@@ -301,20 +301,26 @@ def camera_intrinsics_to_msg(config: Config) -> CameraInfo:
 
 
 
-def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
-    """Move the camera and return the sensor observations and ground truth pose"""
+def random_move(sim: hs.Simulator, config: Config) -> None:
+    """Move the camera"""
     # TODO move in a more meaningful way
     if '1LXtFkjw3qL' in config['scene_file']:
         # Show a scene for debugging instances/classes
         agent = sim.get_agent(0)
         agent_state = hs.agent.AgentState([0.0239539,-2.91559,6.6636], [0, -0.77301, 0, -0.634393])
         agent.set_state(agent_state)
-        observation = sim.get_sensor_observations()
     else:
         # Move around in circles
         sim.step("turn_right")
         sim.step("move_forward")
-        observation = sim.step("move_forward")
+        sim.step("move_forward")
+
+
+
+
+def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
+    """Return the sensor observations and ground truth pose"""
+    observation = sim.get_sensor_observations()
 
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
@@ -360,9 +366,9 @@ def generate_instance_to_class_map(objects: List[hs.scene.SemanticObject]) -> np
     for instance_id in range(len(objects)):
         map[instance_id] = objects[instance_id].category.index()
         if map[instance_id] > 40:
-            rospy.logwarn(''.join(['Invalid object class ID/name: ',
+            rospy.logwarn(''.join(['Invalid object class ID/name ',
                 str(map[instance_id]), '/"',
-                objects[instance_id].category.name(), '"\nReplacing with 0']))
+                objects[instance_id].category.name(), '", replacing with 0']))
             map[instance_id] = 0
     return map
 
@@ -405,6 +411,7 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     if config['publisher_rate'] > 0:
         rate = rospy.Rate(config['publisher_rate'])
     while not rospy.is_shutdown():
+        random_move(sim, config)
         observation = render(sim, config)
         pose_pub.publish(pose_to_msg(observation['T_WB']))
         rgb_pub.publish(rgb_to_msg(observation['rgb']))
