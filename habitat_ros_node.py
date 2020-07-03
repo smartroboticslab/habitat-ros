@@ -216,6 +216,10 @@ def init_habitat(config: Config) -> hs.Simulator:
     config['P'] = np.array([[fx, 0.0, 0.0, 0.0], [0.0, fx, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0]],
             dtype=np.float64)
+    # Setup the instance/class conversion map
+    config['instance_to_class'] = generate_instance_to_class_map(sim.semantic_scene.objects)
+    if config['enable_semantics'] and config['instance_to_class'].size == 0:
+        rospy.logwarn('The scene contains no semantics')
     rospy.loginfo('Habitat simulator initialized')
     return sim
 
@@ -400,11 +404,6 @@ def init_node() -> Tuple[Dict, hs.Simulator]:
 
 def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
-    # Setup the instance/class conversion map
-    config['instance_to_class'] = generate_instance_to_class_map(sim.semantic_scene.objects)
-    if config['enable_semantics'] and config['instance_to_class'].size == 0:
-        rospy.logwarn('The scene contains no semantics')
-
     # Setup the image and pose publishers
     pose_pub = rospy.Publisher(_habitat_pose_topic_name, PoseStamped, queue_size=10)
     rgb_pub = rospy.Publisher(_rgb_topic_name, Image, queue_size=10)
