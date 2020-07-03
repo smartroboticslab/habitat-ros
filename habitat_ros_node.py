@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
 
+# TODO decouple movement rate from camera framerate, read both from config
+
 import os
 
 import cv2
@@ -21,8 +23,8 @@ from typing import Any, Dict, List, Tuple
 
 # Custom type definitions
 Config = Dict[str, Any]
-
-
+Observation = hs.sensor.Observation
+Publishers = Dict[str, rospy.Publisher]
 
 # Convert Matterport3D class ID to class name
 class_id_to_name = {
@@ -169,30 +171,30 @@ def read_node_config() -> Config:
 
 
 
-def rgb_sensor_config(config: Config, name: str='rgb') -> hs.SensorSpec:
+def rgb_sensor_config(config: Config) -> hs.SensorSpec:
     """Return the configuration for a Habitat color sensor"""
     rgb_sensor_spec = hs.SensorSpec()
-    rgb_sensor_spec.uuid = name
+    rgb_sensor_spec.uuid = 'rgb'
     rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
     rgb_sensor_spec.resolution = [config['height'], config['width']]
     return rgb_sensor_spec
 
 
 
-def depth_sensor_config(config: Config, name: str='depth') -> hs.SensorSpec:
+def depth_sensor_config(config: Config) -> hs.SensorSpec:
     """Return the configuration for a Habitat depth sensor"""
     depth_sensor_spec = hs.SensorSpec()
-    depth_sensor_spec.uuid = name
+    depth_sensor_spec.uuid = 'depth'
     depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
     depth_sensor_spec.resolution = [config['height'], config['width']]
     return depth_sensor_spec
 
 
 
-def semantic_sensor_config(config: Config, name: str='semantics') -> hs.SensorSpec:
+def semantic_sensor_config(config: Config) -> hs.SensorSpec:
     """Return the configuration for a Habitat semantic sensor"""
     semantic_sensor_spec = hs.SensorSpec()
-    semantic_sensor_spec.uuid = name
+    semantic_sensor_spec.uuid = 'semantic'
     semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
     semantic_sensor_spec.resolution = [config['height'], config['width']]
     return semantic_sensor_spec
@@ -224,7 +226,7 @@ def init_habitat(config: Config) -> hs.Simulator:
 
 
 
-def pose_to_msg(observation: hs.sensor.Observation) -> PoseStamped:
+def pose_to_msg(observation: Observation) -> PoseStamped:
     """Convert the agent pose in the observation to a PoseStamped message"""
     position = observation['T_WB'][0:3, 3]
     orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
@@ -244,7 +246,7 @@ def pose_to_msg(observation: hs.sensor.Observation) -> PoseStamped:
 
 
 
-def rgb_to_msg(observation: hs.sensor.Observation) -> Image:
+def rgb_to_msg(observation: Observation) -> Image:
     """Convert RGB image to ROS Image message"""
     msg = _bridge.cv2_to_imgmsg(observation['rgb'], "rgb8")
     msg.header.stamp = observation['timestamp']
@@ -252,7 +254,7 @@ def rgb_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 
-def depth_to_msg(observation: hs.sensor.Observation) -> Image:
+def depth_to_msg(observation: Observation) -> Image:
     """Convert depth image to ROS Image message"""
     msg = _bridge.cv2_to_imgmsg(observation['depth'], "32FC1")
     msg.header.stamp = observation['timestamp']
@@ -260,7 +262,7 @@ def depth_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 
-def sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
+def sem_instances_to_msg(observation: Observation) -> Image:
     """Convert instance ID image to ROS Image message"""
     msg = _bridge.cv2_to_imgmsg(observation['sem_instances'].astype(np.uint16), "16UC1")
     msg.header.stamp = observation['timestamp']
@@ -268,7 +270,7 @@ def sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 
-def sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
+def sem_classes_to_msg(observation: Observation) -> Image:
     """Convert class ID image to ROS Image message"""
     msg = _bridge.cv2_to_imgmsg(observation['sem_classes'].astype(np.uint8), "8UC1")
     msg.header.stamp = observation['timestamp']
@@ -276,7 +278,7 @@ def sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 
-def render_sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
+def render_sem_instances_to_msg(observation: Observation) -> Image:
     """Render an instance ID image to a ROS Image message with pretty colours"""
     sem_instances = observation['sem_instances']
     color_img_shape = [sem_instances.shape[0], sem_instances.shape[1] , 3]
@@ -291,7 +293,7 @@ def render_sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 
-def render_sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
+def render_sem_classes_to_msg(observation: Observation) -> Image:
     """Render a class ID image to a ROS Image message with pretty colours"""
     sem_classes = observation['sem_classes']
     color_img_shape = [sem_classes.shape[0], sem_classes.shape[1] , 3]
@@ -335,7 +337,7 @@ def random_move(sim: hs.Simulator, config: Config) -> None:
 
 
 
-def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
+def render(sim: hs.Simulator, config: Config) -> Observation:
     """Return the sensor observations and ground truth pose"""
     observation = sim.get_sensor_observations()
     observation['timestamp'] = rospy.get_rostime()
@@ -345,8 +347,8 @@ def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
 
     if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Assuming the scene has no more than 65534 objects
-        observation['sem_instances'] = np.clip(observation['semantics'].astype(np.uint16), 0, 65535)
-        del observation['semantics']
+        observation['sem_instances'] = np.clip(observation['semantic'].astype(np.uint16), 0, 65535)
+        del observation['semantic']
         # Convert instance IDs to class IDs
         observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
         # TODO make this conversion more efficient
@@ -401,46 +403,73 @@ def init_node() -> Tuple[Dict, hs.Simulator]:
 
 
 
-def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
-    """Start the ROS publisher node"""
-    # Setup the image and pose publishers
-    pose_pub = rospy.Publisher(_habitat_pose_topic_name, PoseStamped, queue_size=10)
-    rgb_pub = rospy.Publisher(_rgb_topic_name + 'image_raw', Image, queue_size=10)
-    depth_pub = rospy.Publisher(_depth_topic_name + 'image_raw', Image, queue_size=10)
+def init_image_publishers(config: Config) -> Publishers:
+    """Initialize and return the image publishers"""
+    image_queue_size = 10
+    pub = {}
+    pub['rgb'] = rospy.Publisher(_rgb_topic_name + 'image_raw',
+            Image, queue_size=image_queue_size)
+    pub['depth'] = rospy.Publisher(_depth_topic_name + 'image_raw',
+            Image, queue_size=image_queue_size)
     if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Only publish semantics if the scene contains semantics
-        sem_class_pub = rospy.Publisher(_sem_class_topic_name + 'image_raw', Image, queue_size=10)
-        sem_instance_pub = rospy.Publisher(_sem_instance_topic_name + 'image_raw', Image, queue_size=10)
+        pub['sem_class'] = rospy.Publisher(_sem_class_topic_name + 'image_raw',
+                Image, queue_size=image_queue_size)
+        pub['sem_instance'] = rospy.Publisher(_sem_instance_topic_name + 'image_raw',
+                Image, queue_size=image_queue_size)
         if config['visualize_semantics']:
-            sem_class_render_pub = rospy.Publisher(_sem_class_topic_name + 'image_color', Image, queue_size=10)
-            sem_instance_render_pub = rospy.Publisher(_sem_instance_topic_name + 'image_color', Image, queue_size=10)
-
+            pub['sem_class_render'] = rospy.Publisher(_sem_class_topic_name + 'image_color',
+                    Image, queue_size=image_queue_size)
+            pub['sem_instance_render'] = rospy.Publisher(_sem_instance_topic_name + 'image_color',
+                    Image, queue_size=image_queue_size)
     # Publish the camera info for each image topic
     image_topics = [_rgb_topic_name, _depth_topic_name]
     if config['enable_semantics'] and config['instance_to_class'].size > 0:
         image_topics += [_sem_class_topic_name, _sem_instance_topic_name]
     camera_info_pub = []
     for topic in image_topics:
-        camera_info_pub.append(rospy.Publisher(topic + 'camera_info', CameraInfo, queue_size=1, latch=True))
-        camera_info_pub[-1].publish(camera_intrinsics_to_msg(config))
+        pub[topic + '_camera_info'] = rospy.Publisher(topic + 'camera_info',
+            CameraInfo, queue_size=1, latch=True)
+        pub[topic + '_camera_info'].publish(camera_intrinsics_to_msg(config))
+    return pub
 
+
+
+def publish_observation(obs: Observation, pub: Publishers, config: Config) -> None:
+    pub['pose'].publish(pose_to_msg(obs))
+    pub['rgb'].publish(rgb_to_msg(obs))
+    pub['depth'].publish(depth_to_msg(obs))
+    if config['enable_semantics'] and config['instance_to_class'].size > 0:
+        pub['sem_class'].publish(sem_classes_to_msg(obs))
+        pub['sem_instance'].publish(sem_instances_to_msg(obs))
+        # Publish semantics visualisations
+        if config['visualize_semantics']:
+            pub['sem_class_render'].publish(render_sem_classes_to_msg(obs))
+            pub['sem_instance_render'].publish(render_sem_instances_to_msg(obs))
+
+
+
+def ondemand_publisher_node(config: Config, sim: hs.Simulator) -> None:
+    """Publish images when a pose is received"""
+    # TODO setup pose subscriber, call render() and publish when receiving
+    pub = init_image_publishers(config)
+    rospy.spin()
+
+
+
+def periodic_publisher_node(config: Config, sim: hs.Simulator) -> None:
+    """Publish images and ground truth pose periodically"""
+    # Setup the image and pose publishers
+    pub = init_image_publishers(config)
+    pub['pose'] = rospy.Publisher(_habitat_pose_topic_name, PoseStamped, queue_size=10)
     # Main publishing loop
-    # TODO decouple movement rate from camera framerate, read both from config
     if config['publisher_rate'] > 0:
         rate = rospy.Rate(config['publisher_rate'])
     while not rospy.is_shutdown():
+        # Move, observe and publish
         random_move(sim, config)
         observation = render(sim, config)
-        pose_pub.publish(pose_to_msg(observation))
-        rgb_pub.publish(rgb_to_msg(observation))
-        depth_pub.publish(depth_to_msg(observation))
-        if config['enable_semantics'] and config['instance_to_class'].size > 0:
-            sem_class_pub.publish(sem_classes_to_msg(observation))
-            sem_instance_pub.publish(sem_instances_to_msg(observation))
-            # Publish semantics visualisations
-            if config['visualize_semantics']:
-                sem_class_render_pub.publish(render_sem_classes_to_msg(observation))
-                sem_instance_render_pub.publish(render_sem_instances_to_msg(observation))
+        publish_observation(observation, pub, config)
         if config['publisher_rate'] > 0:
             rate.sleep()
 
@@ -448,8 +477,10 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
 
 def main() -> None:
     config, sim = init_node()
-    # TODO select whether to run publisher or service
-    run_publisher_node(config, sim)
+    if config['enable_external_pose']:
+        ondemand_publisher_node(config, sim)
+    else:
+        periodic_publisher_node(config, sim)
 
 
 
