@@ -221,15 +221,15 @@ def init_habitat(config: Config) -> hs.Simulator:
 
 
 
-def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
+def pose_to_msg(observation: hs.sensor.Observation) -> PoseStamped:
     """Convert the agent pose in the observation to a PoseStamped message"""
-    position = T_WB[0:3, 3]
-    orientation = quaternion.from_rotation_matrix(T_WB[0:3, 0:3])
+    position = observation['T_WB'][0:3, 3]
+    orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
     p = PoseStamped()
     p.header.frame_id = 'map'
     # Return the current ROS time since the habitat simulator does not provide
     # one. sim.get_world_time() always returns 0
-    p.header.stamp = rospy.get_rostime()
+    p.header.stamp = observation['timestamp']
     p.pose.position.x = position[0]
     p.pose.position.y = position[1]
     p.pose.position.z = position[2]
@@ -241,51 +241,65 @@ def pose_to_msg(T_WB: np.ndarray) -> PoseStamped:
 
 
 
-def rgb_to_msg(rgb: np.ndarray) -> Image:
+def rgb_to_msg(observation: hs.sensor.Observation) -> Image:
     """Convert RGB image to ROS Image message"""
-    return _bridge.cv2_to_imgmsg(rgb, "rgb8")
+    msg = _bridge.cv2_to_imgmsg(observation['rgb'], "rgb8")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
-def depth_to_msg(depth: np.ndarray) -> Image:
+def depth_to_msg(observation: hs.sensor.Observation) -> Image:
     """Convert depth image to ROS Image message"""
-    return _bridge.cv2_to_imgmsg(depth, "32FC1")
+    msg = _bridge.cv2_to_imgmsg(observation['depth'], "32FC1")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
-def sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
+def sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
     """Convert instance ID image to ROS Image message"""
-    return _bridge.cv2_to_imgmsg(sem_instances.astype(np.uint16), "16UC1")
+    msg = _bridge.cv2_to_imgmsg(observation['sem_instances'].astype(np.uint16), "16UC1")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
-def sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
+def sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
     """Convert class ID image to ROS Image message"""
-    return _bridge.cv2_to_imgmsg(sem_classes.astype(np.uint8), "8UC1")
+    msg = _bridge.cv2_to_imgmsg(observation['sem_classes'].astype(np.uint8), "8UC1")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
-def render_sem_instances_to_msg(sem_instances: np.ndarray) -> Image:
+def render_sem_instances_to_msg(observation: hs.sensor.Observation) -> Image:
     """Render an instance ID image to a ROS Image message with pretty colours"""
+    sem_instances = observation['sem_instances']
     color_img_shape = [sem_instances.shape[0], sem_instances.shape[1] , 3]
     color_img = np.zeros(color_img_shape, dtype=np.uint8)
     # TODO make this conversion more efficient
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
             color_img[x, y, :] = class_colors[sem_instances[x, y] % 41, :]
-    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
+    msg = _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
-def render_sem_classes_to_msg(sem_classes: np.ndarray) -> Image:
+def render_sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
     """Render a class ID image to a ROS Image message with pretty colours"""
+    sem_classes = observation['sem_classes']
     color_img_shape = [sem_classes.shape[0], sem_classes.shape[1] , 3]
     color_img = np.zeros(color_img_shape, dtype=np.uint8)
     # TODO make this conversion more efficient
     for y in range(color_img.shape[1]):
         for x in range(color_img.shape[0]):
             color_img[x, y, :] = class_colors[sem_classes[x, y], :]
-    return _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
+    msg = _bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
+    msg.header.stamp = observation['timestamp']
+    return msg
 
 
 
@@ -321,6 +335,7 @@ def random_move(sim: hs.Simulator, config: Config) -> None:
 def render(sim: hs.Simulator, config: Config) -> hs.sensor.Observation:
     """Return the sensor observations and ground truth pose"""
     observation = sim.get_sensor_observations()
+    observation['timestamp'] = rospy.get_rostime()
 
     # Change from RGBA to RGB
     observation['rgb'] = observation['rgb'][..., 0:3]
@@ -413,16 +428,16 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     while not rospy.is_shutdown():
         random_move(sim, config)
         observation = render(sim, config)
-        pose_pub.publish(pose_to_msg(observation['T_WB']))
-        rgb_pub.publish(rgb_to_msg(observation['rgb']))
-        depth_pub.publish(depth_to_msg(observation['depth']))
+        pose_pub.publish(pose_to_msg(observation))
+        rgb_pub.publish(rgb_to_msg(observation))
+        depth_pub.publish(depth_to_msg(observation))
         if config['enable_semantics'] and config['instance_to_class'].size > 0:
-            sem_class_pub.publish(sem_classes_to_msg(observation['sem_classes']))
-            sem_instance_pub.publish(sem_instances_to_msg(observation['sem_instances']))
+            sem_class_pub.publish(sem_classes_to_msg(observation))
+            sem_instance_pub.publish(sem_instances_to_msg(observation))
             # Publish semantics visualisations
             if config['visualize_semantics']:
-                sem_class_render_pub.publish(render_sem_classes_to_msg(observation['sem_classes']))
-                sem_instance_render_pub.publish(render_sem_instances_to_msg(observation['sem_instances']))
+                sem_class_render_pub.publish(render_sem_classes_to_msg(observation))
+                sem_instance_render_pub.publish(render_sem_instances_to_msg(observation))
         if config['publisher_rate'] > 0:
             rate.sleep()
 
