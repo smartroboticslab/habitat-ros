@@ -119,11 +119,10 @@ class_colors = np.array([
 # Instantiate a single CvBridge object for all conversions
 _bridge = CvBridge()
 # Published topic names
-_rgb_topic_name = '/habitat/rgb'
-_depth_topic_name = '/habitat/depth'
-_semantic_class_topic_name = '/habitat/semantic_class'
-_semantic_instance_topic_name = '/habitat/semantic_instance'
-_camera_info_topic_name = '/habitat/camera_info'
+_rgb_topic_name = '/habitat/rgb/'
+_depth_topic_name = '/habitat/depth/'
+_sem_class_topic_name = '/habitat/semantic_class/'
+_sem_instance_topic_name = '/habitat/semantic_instance/'
 _habitat_pose_topic_name = '/habitat/pose'
 
 
@@ -308,14 +307,14 @@ def render_sem_classes_to_msg(observation: hs.sensor.Observation) -> Image:
 
 
 def camera_intrinsics_to_msg(config: Config) -> CameraInfo:
-    m = CameraInfo()
-    # TODO set the message header?
+    # TODO Set parameters in the message header?
     # http://docs.ros.org/electric/api/sensor_msgs/html/msg/CameraInfo.html
-    m.width = config['width']
-    m.height = config['height']
-    m.K = config['K'].flatten().tolist()
-    m.P = config['P'].flatten().tolist()
-    return m
+    msg = CameraInfo()
+    msg.width = config['width']
+    msg.height = config['height']
+    msg.K = config['K'].flatten().tolist()
+    msg.P = config['P'].flatten().tolist()
+    return msg
 
 
 
@@ -406,19 +405,24 @@ def run_publisher_node(config: Config, sim: hs.Simulator) -> None:
     """Start the ROS publisher node"""
     # Setup the image and pose publishers
     pose_pub = rospy.Publisher(_habitat_pose_topic_name, PoseStamped, queue_size=10)
-    rgb_pub = rospy.Publisher(_rgb_topic_name, Image, queue_size=10)
-    depth_pub = rospy.Publisher(_depth_topic_name, Image, queue_size=10)
-    camera_info_pub = rospy.Publisher(_camera_info_topic_name, CameraInfo, queue_size=1, latch=True)
+    rgb_pub = rospy.Publisher(_rgb_topic_name + 'image_raw', Image, queue_size=10)
+    depth_pub = rospy.Publisher(_depth_topic_name + 'image_raw', Image, queue_size=10)
     if config['enable_semantics'] and config['instance_to_class'].size > 0:
         # Only publish semantics if the scene contains semantics
-        sem_class_pub = rospy.Publisher(_semantic_class_topic_name, Image, queue_size=10)
-        sem_instance_pub = rospy.Publisher(_semantic_instance_topic_name, Image, queue_size=10)
+        sem_class_pub = rospy.Publisher(_sem_class_topic_name + 'image_raw', Image, queue_size=10)
+        sem_instance_pub = rospy.Publisher(_sem_instance_topic_name + 'image_raw', Image, queue_size=10)
         if config['visualize_semantics']:
-            sem_class_render_pub = rospy.Publisher(_semantic_class_topic_name + '_render', Image, queue_size=10)
-            sem_instance_render_pub = rospy.Publisher(_semantic_instance_topic_name + '_render', Image, queue_size=10)
+            sem_class_render_pub = rospy.Publisher(_sem_class_topic_name + 'image_color', Image, queue_size=10)
+            sem_instance_render_pub = rospy.Publisher(_sem_instance_topic_name + 'image_color', Image, queue_size=10)
 
-    # Publish the camera info
-    camera_info_pub.publish(camera_intrinsics_to_msg(config))
+    # Publish the camera info for each image topic
+    image_topics = [_rgb_topic_name, _depth_topic_name]
+    if config['enable_semantics'] and config['instance_to_class'].size > 0:
+        image_topics += [_sem_class_topic_name, _sem_instance_topic_name]
+    camera_info_pub = []
+    for topic in image_topics:
+        camera_info_pub.append(rospy.Publisher(topic + 'camera_info', CameraInfo, queue_size=1, latch=True))
+        camera_info_pub[-1].publish(camera_intrinsics_to_msg(config))
 
     # Main publishing loop
     # TODO decouple movement rate from camera framerate, read both from config
