@@ -455,16 +455,10 @@ class HabitatROSNode:
     def _random_move(self, sim: Sim, config: Config) -> None:
         """Move the camera"""
         # TODO move in a more meaningful way
-        if '1LXtFkjw3qL' in config['scene_file']:
-            # Show a scene for debugging instances/classes
-            agent = sim.get_agent(0)
-            agent_state = hs.agent.AgentState([0.0239539,-2.91559,6.6636], [0, -0.77301, 0, -0.634393])
-            agent.set_state(agent_state)
-        else:
-            # Move around in circles
-            sim.step("turn_right")
-            sim.step("move_forward")
-            sim.step("move_forward")
+        # Move around in circles
+        sim.step("turn_right")
+        sim.step("move_forward")
+        sim.step("move_forward")
 
 
 
