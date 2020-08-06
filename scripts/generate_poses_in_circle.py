@@ -23,6 +23,11 @@ def printerr(*args, **kwargs) -> None:
 
 
 
+def program_name() -> str:
+    return os.path.basename(sys.argv[0]).replace('.py', '')
+
+
+
 def str_to_center(s: str) -> List[float]:
     tokens = s.split(',')
     if len(tokens) != 3:
@@ -88,7 +93,7 @@ def print_pose_stamped(p: PoseStamped) -> None:
 
 def main():
     args = parse_args()
-    rospy.init_node('habitat_ros_generate_poses')
+    rospy.init_node('habitat_ros_' + program_name())
     pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
