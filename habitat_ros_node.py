@@ -390,13 +390,8 @@ class HabitatROSNode:
 
     def _render_sem_instances_to_msg(self, observation: Observation) -> Image:
         """Render an instance ID image to a ROS Image message with pretty colours"""
-        sem_instances = observation['sem_instances']
-        color_img_shape = [sem_instances.shape[0], sem_instances.shape[1] , 3]
-        color_img = np.zeros(color_img_shape, dtype=np.uint8)
-        # TODO make this conversion more efficient
-        for y in range(color_img.shape[1]):
-            for x in range(color_img.shape[0]):
-                color_img[x, y, :] = self.class_colors[sem_instances[x, y] % 41, :]
+        color_img = np.array([self.class_colors[x % 41] for x in observation['sem_instances']],
+                dtype=np.uint8)
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -405,13 +400,8 @@ class HabitatROSNode:
 
     def _render_sem_classes_to_msg(self, observation: Observation) -> Image:
         """Render a class ID image to a ROS Image message with pretty colours"""
-        sem_classes = observation['sem_classes']
-        color_img_shape = [sem_classes.shape[0], sem_classes.shape[1] , 3]
-        color_img = np.zeros(color_img_shape, dtype=np.uint8)
-        # TODO make this conversion more efficient
-        for y in range(color_img.shape[1]):
-            for x in range(color_img.shape[0]):
-                color_img[x, y, :] = self.class_colors[sem_classes[x, y], :]
+        color_img = np.array([self.class_colors[x] for x in observation['sem_classes']],
+                dtype=np.uint8)
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -489,12 +479,9 @@ class HabitatROSNode:
             observation['sem_instances'] = np.clip(observation['semantic'].astype(np.uint16), 0, 65535)
             del observation['semantic']
             # Convert instance IDs to class IDs
-            observation['sem_classes'] = np.zeros(observation['sem_instances'].shape, dtype=np.uint8)
-            # TODO make this conversion more efficient
-            for y in range(observation['sem_classes'].shape[1]):
-                for x in range(observation['sem_classes'].shape[0]):
-                    observation['sem_classes'][x, y] = config['instance_to_class'][observation['sem_instances'][x, y]]
-            observation['sem_classes'] = observation['sem_classes'].astype(np.uint8)
+            observation['sem_classes'] = np.array(
+                    [config['instance_to_class'][x] for x in observation['sem_instances']],
+                    dtype=np.uint8)
         # Get the camera ground truth pose (T_HC) in the habitat frame from the
         # position and orientation
         t_HC = sim.get_agent(0).get_state().position
