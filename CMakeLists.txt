@@ -24,7 +24,7 @@ endif()
 # This assumes Ubuntu 20.04 and a conda environment already set-up with the
 # habitat-sim dependencies and activated
 add_custom_target(habitat-sim ALL
-    python3 setup.py install --prefix ~/.local --cmake-args="-DUSE_SYSTEM_ASSIMP=ON"
+    python3 setup.py install --prefix ~/.local --with-cuda --cmake-args="-DUSE_SYSTEM_ASSIMP=ON"
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/habitat_sim
 )
