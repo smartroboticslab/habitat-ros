@@ -187,10 +187,10 @@ class HabitatROSNode:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
         param_names = ['external_pose_topic_name', 'width', 'height',
-                'near_plane', 'far_plane', 'scene_file', 'publisher_rate',
+                'near_plane', 'far_plane', 'fx', 'scene_file', 'publisher_rate',
                 'enable_external_pose', 'enable_semantics', 'visualize_semantics']
         param_default_values = ['/habitat/external_pose', 640, 480, 0.1, 10.0,
-                '', 0, False, False, False]
+                525.0, '', 0, False, False, False]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
@@ -257,6 +257,7 @@ class HabitatROSNode:
         rgb_sensor_spec.resolution = [config['height'], config['width']]
         rgb_sensor_spec.parameters['near'] = str(config['near_plane'])
         rgb_sensor_spec.parameters['far'] = str(config['far_plane'])
+        rgb_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
         return rgb_sensor_spec
 
 
@@ -269,6 +270,7 @@ class HabitatROSNode:
         depth_sensor_spec.resolution = [config['height'], config['width']]
         depth_sensor_spec.parameters['near'] = str(config['near_plane'])
         depth_sensor_spec.parameters['far'] = str(config['far_plane'])
+        depth_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
         return depth_sensor_spec
 
 
@@ -281,6 +283,7 @@ class HabitatROSNode:
         semantic_sensor_spec.resolution = [config['height'], config['width']]
         semantic_sensor_spec.parameters['near'] = str(config['near_plane'])
         semantic_sensor_spec.parameters['far'] = str(config['far_plane'])
+        semantic_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
         return semantic_sensor_spec
 
 
