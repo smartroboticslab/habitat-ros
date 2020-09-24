@@ -10,6 +10,8 @@ external_pose_topic_name: "/habitat/external_pose"
 # Sensor settings
 width: 640
 height: 480
+near_plane: 0.1
+far_plane: 20.0
 
 # Other settings
 scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
