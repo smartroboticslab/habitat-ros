@@ -9,6 +9,7 @@ import os
 
 import cv2
 import habitat_sim as hs
+import math
 import numpy as np
 import quaternion
 import rospkg
@@ -222,10 +223,12 @@ class HabitatROSNode:
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
         hfov = float(agent_config.sensor_specifications[0].parameters['hfov'])
-        fx = 1.0 / np.tan(hfov / 2.0)
-        config['K'] = np.array([[fx, 0.0, 0.0], [0.0, fx, 0.0], [0.0, 0.0, 1.0]],
+        fx = self._hfov_to_fx(hfov, config['width'])
+        cx = config['width'] / 2.0 - 0.5
+        cy = config['height'] / 2.0 - 0.5
+        config['K'] = np.array([[fx, 0.0, cx], [0.0, fx, cy], [0.0, 0.0, 1.0]],
                 dtype=np.float64)
-        config['P'] = np.array([[fx, 0.0, 0.0, 0.0], [0.0, fx, 0.0, 0.0],
+        config['P'] = np.array([[fx, 0.0, cx, 0.0], [0.0, fx, cy, 0.0],
             [0.0, 0.0, 1.0, 0.0]],
                 dtype=np.float64)
         # Setup the instance/class conversion map
@@ -448,6 +451,18 @@ class HabitatROSNode:
         T[0:3, 3] = t
         T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
         return T
+
+
+
+    def _hfov_to_fx(self, hfov: float, width: int) -> float:
+        """Convert horizontal field of view in degrees to focal length in pixels.
+        https://github.com/facebookresearch/habitat-sim/issues/402"""
+        return 1.0 / (2.0 / float(width) * math.tan(math.radians(hfov) / 2.0))
+
+
+
+    def _fx_to_hfov(self, fx: float, width: int) -> float:
+        return math.degrees(2.0 * math.atan(float(width) / (2.0 * fx)))
 
 
 
