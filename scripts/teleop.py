@@ -168,8 +168,8 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt, rospy.ROSInterruptException, _curses.error) as e:
-        pass
+    except (KeyboardInterrupt, rospy.ROSInterruptException, curses.error) as e:
+        curses.endwin()
     finally:
         curses.endwin()
 
