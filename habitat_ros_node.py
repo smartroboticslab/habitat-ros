@@ -165,7 +165,7 @@ class HabitatROSNode:
         while not rospy.is_shutdown():
             # Move, observe and publish
             if self.config['enable_external_pose']:
-                self._move(self.sim, self.t_HC, self.q_HC)
+                self._move(self.sim, self.T_HC)
             else:
                 self._random_move(self.sim, self.config)
             observation = self._render(self.sim, self.config)
@@ -239,10 +239,10 @@ class HabitatROSNode:
             rospy.logwarn('The scene contains no semantics')
         # Get the initial agent pose
         agent = sim.get_agent(0)
-        self.t_HC = agent.get_state().position
-        self.q_HC = agent.get_state().rotation
-        T_HC = self._combine_pose(self.t_HC, self.q_HC)
-        t_WB, q_WB = self._split_pose(self._T_HC_to_T_WB(T_HC))
+        t_HC = agent.get_state().position
+        q_HC = agent.get_state().rotation
+        self.T_HC = self._combine_pose(t_HC, q_HC)
+        t_WB, q_WB = self._split_pose(self._T_HC_to_T_WB(self.T_HC))
         # Convert to world and body frames to show to the user
         rospy.loginfo('Initial t_WB:              ' + str(t_WB))
         rospy.loginfo('Initial q_WB (w,x,y,z): ' + str(q_WB))
@@ -345,8 +345,7 @@ class HabitatROSNode:
         q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
                 pose.pose.orientation.y, pose.pose.orientation.z)
         T_WB = self._combine_pose(t_WB, q_WB)
-        T_HC = self._T_WB_to_T_HC(T_WB)
-        self.t_HC, self.q_HC = self._split_pose(T_HC)
+        self.T_HC = self._T_WB_to_T_HC(T_WB)
 
 
 
@@ -471,9 +470,10 @@ class HabitatROSNode:
 
 
 
-    def _move(self, sim: Sim, position: np.ndarray, orientation: np.quaternion) -> None:
+    def _move(self, sim: Sim, T_HC: np.ndarray) -> None:
+        t_HC, q_HC = self._split_pose(T_HC)
         agent = sim.get_agent(0)
-        agent_state = hs.agent.AgentState(position, orientation)
+        agent_state = hs.agent.AgentState(t_HC, q_HC)
         agent.set_state(agent_state)
 
 
