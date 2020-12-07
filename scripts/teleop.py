@@ -53,18 +53,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def init_pose() -> PoseStamped:
-    p = PoseStamped()
-    p.header.frame_id = 'world'
-    p.header.stamp = rospy.get_rostime()
-    p.header.seq = 0
-    p.pose.position.x = -4.0
-    p.pose.position.y =  2.0
-    p.pose.position.z = -3.0
-    p.pose.orientation.x =  0.0
-    p.pose.orientation.y =  0.0
-    p.pose.orientation.z =  0.0
-    p.pose.orientation.w =  1.0
-    return p
+    return rospy.wait_for_message("/habitat/pose", PoseStamped)
 
 
 
@@ -128,6 +117,22 @@ def read_key(window) -> Tuple[Movement, bool]:
     return m, quit
 
 
+def print_waiting_for_pose(window) -> None:
+    window.clear()
+    window.addstr(1, 0, 'Waiting for initial pose...')
+    window.refresh()
+
+
+
+def print_help(window) -> None:
+    window.addstr(0, 0, 'Position:')
+    window.addstr(2, 0, 'Orientation (w,x,y,z):')
+    window.addstr(5, 0, 'k/j   forwards/backwards')
+    window.addstr(6, 0, 'u/m   up/down')
+    window.addstr(7, 0, 'h/l   rotate left/right')
+
+
+
 def print_pose_stamped(p: PoseStamped, window) -> None:
     position = [p.pose.position.x, p.pose.position.y, p.pose.position.z]
     orientation = [p.pose.orientation.w, p.pose.orientation.x,
@@ -148,15 +153,13 @@ def main():
     pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
     # Initialize curses
     window = curses.initscr()
-    window.addstr(0, 0, 'Position:')
-    window.addstr(2, 0, 'Orientation (w,x,y,z):')
-    window.addstr(5, 0, 'k/j   forwards/backwards')
-    window.addstr(6, 0, 'u/m   up/down')
-    window.addstr(7, 0, 'h/l   rotate left/right')
     curses.noecho()
+    # Wait for the initial pose
+    print_waiting_for_pose(window)
+    pose = init_pose()
     # Main loop
     quit = False
-    pose = init_pose()
+    print_help(window)
     while not (rospy.is_shutdown() or quit):
         pose_pub.publish(pose)
         print_pose_stamped(pose, window)
