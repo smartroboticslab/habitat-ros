@@ -13,11 +13,11 @@ height: 480
 near_plane: 0.1
 far_plane: 20.0
 fx: 525.0
+fps: 30
 
 # Other settings
 scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
 #scene_file: "~/Documents/Datasets/Matterport3D/v1/tasks/mp3d_habitat/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb"
-publisher_rate: 30
 enable_external_pose: true
 enable_semantics: false
 visualize_semantics: false

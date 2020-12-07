@@ -160,8 +160,8 @@ class HabitatROSNode:
                     PoseStamped, self._pose_callback)
         rospy.loginfo('Node ready')
         # Main loop
-        if self.config['publisher_rate'] > 0:
-            rate = rospy.Rate(self.config['publisher_rate'])
+        if self.config['fps'] > 0:
+            rate = rospy.Rate(self.config['fps'])
         while not rospy.is_shutdown():
             # Move, observe and publish
             if self.config['enable_external_pose']:
@@ -170,7 +170,7 @@ class HabitatROSNode:
                 self._random_move(self.sim, self.config)
             observation = self._render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
-            if self.config['publisher_rate'] > 0:
+            if self.config['fps'] > 0:
                 rate.sleep()
 
 
@@ -186,11 +186,13 @@ class HabitatROSNode:
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
-        param_names = ['external_pose_topic_name', 'width', 'height',
-                'near_plane', 'far_plane', 'fx', 'scene_file', 'publisher_rate',
-                'enable_external_pose', 'enable_semantics', 'visualize_semantics']
-        param_default_values = ['/habitat/external_pose', 640, 480, 0.1, 10.0,
-                525.0, '', 0, False, False, False]
+        param_names = ['external_pose_topic_name',
+                'width', 'height', 'near_plane', 'far_plane', 'fx', 'fps',
+                'scene_file', 'enable_external_pose', 'enable_semantics',
+                'visualize_semantics']
+        param_default_values = ['/habitat/external_pose',
+                640, 480, 0.1, 10.0, 525.0, 30,
+                '', False, False, False]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
