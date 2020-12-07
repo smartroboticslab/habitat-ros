@@ -165,9 +165,9 @@ class HabitatROSNode:
         while not rospy.is_shutdown():
             # Move, observe and publish
             if self.config['enable_external_pose']:
-                self._teleport(self.sim, self.T_HC)
+                self._teleport()
             else:
-                self._random_teleport(self.sim, self.config)
+                self._random_teleport()
             observation = self._render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
             if self.config['fps'] > 0:
@@ -470,21 +470,21 @@ class HabitatROSNode:
 
 
 
-    def _teleport(self, sim: Sim, T_HC: np.ndarray) -> None:
-        t_HC, q_HC = self._split_pose(T_HC)
-        agent = sim.get_agent(0)
+    def _teleport(self) -> None:
+        t_HC, q_HC = self._split_pose(self.T_HC)
+        agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_HC, q_HC)
         agent.set_state(agent_state)
 
 
 
-    def _random_teleport(self, sim: Sim, config: Config) -> None:
+    def _random_teleport(self) -> None:
         """Move the camera"""
         # TODO move in a more meaningful way
         # Move around in circles
-        sim.step("turn_right")
-        sim.step("move_forward")
-        sim.step("move_forward")
+        self.sim.step("turn_right")
+        self.sim.step("move_forward")
+        self.sim.step("move_forward")
 
 
 
