@@ -241,10 +241,10 @@ class HabitatROSNode:
         agent = sim.get_agent(0)
         t_HC = agent.get_state().position
         q_HC = agent.get_state().rotation
-        self.T_HC = self._combine_pose(t_HC, q_HC)
-        t_WB, q_WB = self._split_pose(self._T_HC_to_T_WB(self.T_HC))
-        # Convert to world and body frames to show to the user
-        rospy.loginfo('Initial t_WB:              ' + str(t_WB))
+        T_HC = self._combine_pose(t_HC, q_HC)
+        self.T_WB = self._T_HC_to_T_WB(T_HC)
+        t_WB, q_WB = self._split_pose(self.T_WB)
+        rospy.loginfo('Initial t_WB:           ' + str(t_WB))
         rospy.loginfo('Initial q_WB (w,x,y,z): ' + str(q_WB))
         rospy.loginfo('Habitat simulator initialized')
         return sim
@@ -340,12 +340,10 @@ class HabitatROSNode:
 
 
     def _pose_callback(self, pose: PoseStamped) -> None:
-        # Convert T_WB to T_HC
         t_WB = [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
         q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
                 pose.pose.orientation.y, pose.pose.orientation.z)
-        T_WB = self._combine_pose(t_WB, q_WB)
-        self.T_HC = self._T_WB_to_T_HC(T_WB)
+        self.T_WB = self._combine_pose(t_WB, q_WB)
 
 
 
@@ -471,7 +469,7 @@ class HabitatROSNode:
 
 
     def _teleport(self) -> None:
-        t_HC, q_HC = self._split_pose(self.T_HC)
+        t_HC, q_HC = self._split_pose(self._T_WB_to_T_HC(self.T_WB))
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_HC, q_HC)
         agent.set_state(agent_state)
