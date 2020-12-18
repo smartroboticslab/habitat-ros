@@ -161,10 +161,10 @@ def main():
     quit = False
     print_help(window)
     while not (rospy.is_shutdown() or quit):
-        pose_pub.publish(pose)
         print_pose_stamped(pose, window)
         movement, quit = read_key(window) # blocks
         pose = update_pose(pose, movement)
+        pose_pub.publish(pose)
 
 
 
