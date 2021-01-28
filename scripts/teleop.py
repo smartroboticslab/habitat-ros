@@ -59,7 +59,7 @@ def init_pose() -> PoseStamped:
 
 def update_pose(p: PoseStamped, m: Movement):
     p.header.stamp = rospy.get_rostime()
-    p.header.seq += 1
+    p.header.frame_id = 'world'
     q_current = quaternion.quaternion(p.pose.orientation.w, p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
     R_current = quaternion.as_rotation_matrix(q_current)
     theta_current = math.atan2(R_current[1,0], R_current[0,0])

@@ -340,6 +340,10 @@ class HabitatROSNode:
 
 
     def _pose_callback(self, pose: PoseStamped) -> None:
+        # Ignore poses in the wrong frame
+        if pose.header.frame_id != 'world':
+            rospy.logerr_once('External poses should have frame_id == "world"')
+            return
         t_WB = [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
         q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
                 pose.pose.orientation.y, pose.pose.orientation.z)
@@ -352,7 +356,7 @@ class HabitatROSNode:
         position = observation['T_WB'][0:3, 3]
         orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
         p = PoseStamped()
-        p.header.frame_id = 'map'
+        p.header.frame_id = 'world'
         # Return the current ROS time since the habitat simulator does not provide
         # one. sim.get_world_time() always returns 0
         p.header.stamp = observation['timestamp']
