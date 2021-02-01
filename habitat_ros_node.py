@@ -5,11 +5,12 @@
 
 # TODO decouple movement rate from camera framerate, read both from config
 
+import math
 import os
+import threading
 
 import cv2
 import habitat_sim as hs
-import math
 import numpy as np
 import quaternion
 import rospkg
@@ -154,6 +155,8 @@ class HabitatROSNode:
         self.config = self._read_node_config()
         self.sim = self._init_habitat(self.config)
         self.pub = self._init_publishers(self.config)
+        # Initialize the pose mutex
+        self.T_WB_mutex = threading.Lock()
         # Setup the external pose subscriber
         if self.config['enable_external_pose']:
             rospy.Subscriber(self.config['external_pose_topic_name'],
@@ -347,7 +350,10 @@ class HabitatROSNode:
         t_WB = [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
         q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
                 pose.pose.orientation.y, pose.pose.orientation.z)
+        # Update the pose
+        self.T_WB_mutex.acquire()
         self.T_WB = self._combine_pose(t_WB, q_WB)
+        self.T_WB_mutex.release()
 
 
 
@@ -473,7 +479,9 @@ class HabitatROSNode:
 
 
     def _teleport(self) -> None:
+        self.T_WB_mutex.acquire()
         t_HC, q_HC = self._split_pose(self._T_WB_to_T_HC(self.T_WB))
+        self.T_WB_mutex.release()
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_HC, q_HC)
         agent.set_state(agent_state)
