@@ -57,7 +57,7 @@ def init_pose() -> PoseStamped:
 
 
 
-def update_pose(p: PoseStamped, m: Movement):
+def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     p.header.stamp = rospy.get_rostime()
     p.header.frame_id = 'world'
     q_current = quaternion.quaternion(p.pose.orientation.w, p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
@@ -146,7 +146,7 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 
 
 
-def main():
+def main() -> None:
     args = parse_args()
     # Initialize ROS
     rospy.init_node('habitat_ros_' + program_name())
