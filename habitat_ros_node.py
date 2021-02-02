@@ -159,19 +159,15 @@ class HabitatROSNode:
         # Initialize the pose mutex
         self.T_WB_mutex = threading.Lock()
         # Setup the external pose subscriber
-        if self.config['enable_external_pose']:
-            rospy.Subscriber(self._external_pose_topic_name,
-                    PoseStamped, self._pose_callback)
+        rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
+                self._pose_callback)
         rospy.loginfo('Node ready')
         # Main loop
         if self.config['fps'] > 0:
             rate = rospy.Rate(self.config['fps'])
         while not rospy.is_shutdown():
             # Move, observe and publish
-            if self.config['enable_external_pose']:
-                self._teleport()
-            else:
-                self._random_teleport()
+            self._teleport()
             observation = self._render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
             if self.config['fps'] > 0:
@@ -191,10 +187,9 @@ class HabitatROSNode:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
         param_names = [ 'width', 'height', 'near_plane', 'far_plane', 'fx',
-                'fps', 'scene_file', 'enable_external_pose', 'enable_semantics',
-                'visualize_semantics']
+                'fps', 'scene_file', 'enable_semantics', 'visualize_semantics']
         param_default_values = [ 640, 480, 0.1, 10.0, 525.0, 30, '', False,
-                False, False]
+                False]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
@@ -484,16 +479,6 @@ class HabitatROSNode:
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_HC, q_HC)
         agent.set_state(agent_state)
-
-
-
-    def _random_teleport(self) -> None:
-        """Move the camera"""
-        # TODO move in a more meaningful way
-        # Move around in circles
-        self.sim.step("turn_right")
-        self.sim.step("move_forward")
-        self.sim.step("move_forward")
 
 
 
