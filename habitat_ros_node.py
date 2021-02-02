@@ -133,6 +133,7 @@ class HabitatROSNode:
     _sem_class_topic_name = '/habitat/semantic_class/'
     _sem_instance_topic_name = '/habitat/semantic_instance/'
     _habitat_pose_topic_name = '/habitat/pose'
+    _external_pose_topic_name = '/habitat/external_pose'
 
     # Transforms between the habitat frame H (y-up) and the world frame W
     # (z-up)
@@ -159,7 +160,7 @@ class HabitatROSNode:
         self.T_WB_mutex = threading.Lock()
         # Setup the external pose subscriber
         if self.config['enable_external_pose']:
-            rospy.Subscriber(self.config['external_pose_topic_name'],
+            rospy.Subscriber(self._external_pose_topic_name,
                     PoseStamped, self._pose_callback)
         rospy.loginfo('Node ready')
         # Main loop
@@ -189,13 +190,11 @@ class HabitatROSNode:
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
-        param_names = ['external_pose_topic_name',
-                'width', 'height', 'near_plane', 'far_plane', 'fx', 'fps',
-                'scene_file', 'enable_external_pose', 'enable_semantics',
+        param_names = [ 'width', 'height', 'near_plane', 'far_plane', 'fx',
+                'fps', 'scene_file', 'enable_external_pose', 'enable_semantics',
                 'visualize_semantics']
-        param_default_values = ['/habitat/external_pose',
-                640, 480, 0.1, 10.0, 525.0, 30,
-                '', False, False, False]
+        param_default_values = [ 640, 480, 0.1, 10.0, 525.0, 30, '', False,
+                False, False]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):

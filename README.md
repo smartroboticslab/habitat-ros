@@ -61,6 +61,11 @@ python3 download_mp.py --task habitat -o /path/to/download/
 | `/habitat/rgb/image_raw`   | `sensor_msgs::Image (rgb8)`  | The rendered RGB image. |
 | `/habitat/pose`            | `geometry_msgs::PoseStamped` | The pose (T_WB) the images where rendered from. The World frame is that of the current environment (z-up). The Body frame is the standard ROS frame (x-forward, z-up). |
 
+### Subscribed topics
+| Topic name               | Type                         | Description |
+| :----------------------- | :--------------------------- | :---------- |
+| `/habitat/external_pose` | `geometry_msgs::PoseStamped` | The pose (T_WB) where the next images should be rendered from. The World frame is that of the current environment (z-up). The Body frame is the standard ROS frame (x-forward, z-up). |
+
 
 
 ## License

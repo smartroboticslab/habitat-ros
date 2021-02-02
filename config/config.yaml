@@ -4,9 +4,6 @@
 
 # Habitat-ROS node settings
 
-# Subscribed topics
-external_pose_topic_name: "/habitat/external_pose"
-
 # Sensor settings
 width: 640
 height: 480
