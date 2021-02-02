@@ -47,7 +47,7 @@ catkin_package(
 )
 
 catkin_install_python(
-    PROGRAMS habitat_ros_node.py
+    PROGRAMS habitat_ros_node.py habitat_ros_mav_sim_node.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

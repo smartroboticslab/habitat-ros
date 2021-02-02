@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
-# SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
+# SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London
+# SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou
 # SPDX-License-Identifier: CC0-1.0
 
 # Habitat-ROS node settings
@@ -17,4 +17,10 @@ scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-cast
 #scene_file: "~/Documents/Datasets/Matterport3D/v1/tasks/mp3d_habitat/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb"
 enable_semantics: false
 visualize_semantics: false
+
+# Simple MAV simulator settings
+habitat_ros_mav_sim:
+    sim_freq: 60 # Hz
+    a_max: [1.0, 1.0, 0.5]
+    w_max: [0.1, 0.1, 0.05]
 

@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
-# SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
+# SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London
+# SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
-
-# TODO decouple movement rate from camera framerate, read both from config
 
 import math
 import os

@@ -14,6 +14,7 @@ import sys
 import time
 
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 from typing import List, Tuple
 
 
@@ -42,6 +43,10 @@ class Movement:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
             description="Control the agent with the keyboard")
+    parser.add_argument('-p', '--publish-path', action='store_true',
+            help='Publish the goal pose as a nav_msgs::Path instead of a '
+            'geometry_msgs::PoseStamped. This is meant for use with the MAV '
+            'simulator.')
     return parser.parse_args()
 
 
@@ -77,6 +82,16 @@ def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     new_p.pose.orientation.z = q_new[3]
     new_p.pose.orientation.w = q_new[0]
     return new_p
+
+
+
+def pose_to_path(pose: PoseStamped, new_pose: PoseStamped) -> Path:
+    path = Path()
+    path.header.stamp = rospy.get_rostime()
+    path.header.frame_id = "world"
+    path.poses.append(pose)
+    path.poses.append(new_pose)
+    return path
 
 
 
@@ -147,7 +162,10 @@ def main() -> None:
     args = parse_args()
     # Initialize ROS
     rospy.init_node('habitat_ros_teleop')
-    pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
+    if args.publish_path:
+        path_pub = rospy.Publisher('/mav_sim/goal_path', Path, queue_size=10)
+    else:
+        pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
     # Initialize curses
     window = curses.initscr()
     curses.noecho()
@@ -160,8 +178,12 @@ def main() -> None:
     while not (rospy.is_shutdown() or quit):
         print_pose_stamped(pose, window)
         movement, quit = read_key(window) # blocks
-        pose = update_pose(pose, movement)
-        pose_pub.publish(pose)
+        new_pose = update_pose(pose, movement)
+        if args.publish_path:
+            path_pub.publish(pose_to_path(pose, new_pose))
+        else:
+            pose_pub.publish(new_pose)
+        pose = new_pose
 
 
 
