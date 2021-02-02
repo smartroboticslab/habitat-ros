@@ -31,6 +31,33 @@ Sim = hs.Simulator
 
 
 
+def split_pose(T: np.array) -> Tuple[np.array, quaternion.quaternion]:
+    """Split a pose in a 4x4 matrix into a position vector and an orientation
+    quaternion."""
+    return T[0:3, 3], quaternion.from_rotation_matrix(T[0:3, 0:3])
+
+def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
+    """Combine a position vector and an orientation quaternion into a 4x4 pose
+    Matrix."""
+    T = np.identity(4)
+    T[0:3, 3] = t
+    T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
+    return T
+
+
+
+def hfov_to_fx(hfov: float, width: int) -> float:
+    """Convert horizontal field of view in degrees to focal length in pixels.
+    https://github.com/facebookresearch/habitat-sim/issues/402"""
+    return 1.0 / (2.0 / float(width) * math.tan(math.radians(hfov) / 2.0))
+
+def fx_to_hfov(fx: float, width: int) -> float:
+    """Convert focal length in pixels to horizontal field of view in degrees.
+    https://github.com/facebookresearch/habitat-sim/issues/402"""
+    return math.degrees(2.0 * math.atan(float(width) / (2.0 * fx)))
+
+
+
 class HabitatROSNode:
     # Convert Matterport3D class ID to class name
     class_id_to_name = {
@@ -222,7 +249,7 @@ class HabitatROSNode:
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
         hfov = float(agent_config.sensor_specifications[0].parameters['hfov'])
-        fx = self._hfov_to_fx(hfov, config['width'])
+        fx = hfov_to_fx(hfov, config['width'])
         cx = config['width'] / 2.0 - 0.5
         cy = config['height'] / 2.0 - 0.5
         config['K'] = np.array([[fx, 0.0, cx], [0.0, fx, cy], [0.0, 0.0, 1.0]],
@@ -238,9 +265,9 @@ class HabitatROSNode:
         agent = sim.get_agent(0)
         t_HC = agent.get_state().position
         q_HC = agent.get_state().rotation
-        T_HC = self._combine_pose(t_HC, q_HC)
+        T_HC = combine_pose(t_HC, q_HC)
         self.T_WB = self._T_HC_to_T_WB(T_HC)
-        t_WB, q_WB = self._split_pose(self.T_WB)
+        t_WB, q_WB = split_pose(self.T_WB)
         rospy.loginfo('Initial t_WB:           ' + str(t_WB))
         rospy.loginfo('Initial q_WB (w,x,y,z): ' + str(q_WB))
         rospy.loginfo('Habitat simulator initialized')
@@ -256,7 +283,7 @@ class HabitatROSNode:
         rgb_sensor_spec.resolution = [config['height'], config['width']]
         rgb_sensor_spec.parameters['near'] = str(config['near_plane'])
         rgb_sensor_spec.parameters['far'] = str(config['far_plane'])
-        rgb_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
+        rgb_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
         return rgb_sensor_spec
 
 
@@ -269,7 +296,7 @@ class HabitatROSNode:
         depth_sensor_spec.resolution = [config['height'], config['width']]
         depth_sensor_spec.parameters['near'] = str(config['near_plane'])
         depth_sensor_spec.parameters['far'] = str(config['far_plane'])
-        depth_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
+        depth_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
         return depth_sensor_spec
 
 
@@ -282,7 +309,7 @@ class HabitatROSNode:
         semantic_sensor_spec.resolution = [config['height'], config['width']]
         semantic_sensor_spec.parameters['near'] = str(config['near_plane'])
         semantic_sensor_spec.parameters['far'] = str(config['far_plane'])
-        semantic_sensor_spec.parameters['hfov'] = str(self._fx_to_hfov(config['fx'], config['width']))
+        semantic_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
         return semantic_sensor_spec
 
 
@@ -346,7 +373,7 @@ class HabitatROSNode:
                 pose.pose.orientation.y, pose.pose.orientation.z)
         # Update the pose
         self.T_WB_mutex.acquire()
-        self.T_WB = self._combine_pose(t_WB, q_WB)
+        self.T_WB = combine_pose(t_WB, q_WB)
         self.T_WB_mutex.release()
 
 
@@ -447,34 +474,9 @@ class HabitatROSNode:
 
 
 
-    def _split_pose(self, T: np.array) -> Tuple[np.array, quaternion.quaternion]:
-        return T[0:3, 3], quaternion.from_rotation_matrix(T[0:3, 0:3])
-
-
-
-    def _combine_pose(self, t: np.array, q: quaternion.quaternion) -> np.array:
-        T = np.identity(4)
-        T[0:3, 3] = t
-        T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
-        return T
-
-
-
-    def _hfov_to_fx(self, hfov: float, width: int) -> float:
-        """Convert horizontal field of view in degrees to focal length in pixels.
-        https://github.com/facebookresearch/habitat-sim/issues/402"""
-        return 1.0 / (2.0 / float(width) * math.tan(math.radians(hfov) / 2.0))
-
-
-
-    def _fx_to_hfov(self, fx: float, width: int) -> float:
-        return math.degrees(2.0 * math.atan(float(width) / (2.0 * fx)))
-
-
-
     def _teleport(self) -> None:
         self.T_WB_mutex.acquire()
-        t_HC, q_HC = self._split_pose(self._T_WB_to_T_HC(self.T_WB))
+        t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
         self.T_WB_mutex.release()
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_HC, q_HC)
@@ -500,7 +502,7 @@ class HabitatROSNode:
         # position and orientation
         t_HC = sim.get_agent(0).get_state().position
         q_HC = sim.get_agent(0).get_state().rotation
-        T_HC = self._combine_pose(t_HC, q_HC)
+        T_HC = combine_pose(t_HC, q_HC)
         observation['T_WB'] = self._T_HC_to_T_WB(T_HC)
         return observation
 
