@@ -19,9 +19,9 @@ from typing import List, Tuple
 
 
 class Movement:
-    _fb_step = 0.25 # metres
-    _ud_step = 0.25 # metres
-    _lr_step = 5 # degrees
+    _fb_step = 0.25 # metres, forward/backward movement step
+    _ud_step = 0.25 # metres, up/down movement step
+    _lr_step = 5 # degrees, left/right rotation step
 
     def __init__(self, f: int=0, u: int=0, l: int=0) -> None:
         self._fb = f
@@ -39,15 +39,9 @@ class Movement:
 
 
 
-
-def program_name() -> str:
-    return os.path.basename(sys.argv[0]).replace('.py', '')
-
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-            description='Control the agent with the keyboard')
+            description="Control the agent with the keyboard")
     return parser.parse_args()
 
 
@@ -59,7 +53,7 @@ def init_pose() -> PoseStamped:
 
 def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     p.header.stamp = rospy.get_rostime()
-    p.header.frame_id = 'world'
+    p.header.frame_id = "world"
     q_current = quaternion.quaternion(p.pose.orientation.w, p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
     R_current = quaternion.as_rotation_matrix(q_current)
     theta_current = math.atan2(R_current[1,0], R_current[0,0])
@@ -117,6 +111,7 @@ def read_key(window) -> Tuple[Movement, bool]:
     return m, quit
 
 
+
 def print_waiting_for_pose(window) -> None:
     window.clear()
     window.addstr(1, 0, 'Waiting for initial pose...')
@@ -149,7 +144,7 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 def main() -> None:
     args = parse_args()
     # Initialize ROS
-    rospy.init_node('habitat_ros_' + program_name())
+    rospy.init_node('habitat_ros_teleop')
     pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
     # Initialize curses
     window = curses.initscr()
