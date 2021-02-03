@@ -52,16 +52,18 @@ def init_pose() -> PoseStamped:
 
 
 def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
-    p.header.stamp = rospy.get_rostime()
-    p.header.frame_id = "world"
-    q_current = quaternion.quaternion(p.pose.orientation.w, p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
+    new_p = PoseStamped()
+    new_p.header.stamp = rospy.get_rostime()
+    new_p.header.frame_id = "world"
+    q_current = quaternion.quaternion(p.pose.orientation.w,
+            p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
     R_current = quaternion.as_rotation_matrix(q_current)
     theta_current = math.atan2(R_current[1,0], R_current[0,0])
     # Forwards/backwards movement
-    p.pose.position.x += m.fb() * math.cos(theta_current)
-    p.pose.position.y += m.fb() * math.sin(theta_current)
+    new_p.pose.position.x = p.pose.position.x + m.fb() * math.cos(theta_current)
+    new_p.pose.position.y = p.pose.position.y + m.fb() * math.sin(theta_current)
     # Up/down movement
-    p.pose.position.z += m.ud()
+    new_p.pose.position.z = p.pose.position.z + m.ud()
     # Left/right rotation
     theta_new = theta_current + m.lr()
     R = np.eye(3)
@@ -70,11 +72,11 @@ def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     R[1,0] = math.sin(theta_new)
     R[1,1] = math.cos(theta_new)
     q_new = quaternion.as_float_array(quaternion.from_rotation_matrix(R))
-    p.pose.orientation.x =  q_new[1]
-    p.pose.orientation.y =  q_new[2]
-    p.pose.orientation.z =  q_new[3]
-    p.pose.orientation.w =  q_new[0]
-    return p
+    new_p.pose.orientation.x = q_new[1]
+    new_p.pose.orientation.y = q_new[2]
+    new_p.pose.orientation.z = q_new[3]
+    new_p.pose.orientation.w = q_new[0]
+    return new_p
 
 
 
