@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!-- SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London -->
-<!-- SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou -->
+<!-- SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London -->
+<!-- SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou -->
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <launch>
   <!-- Set the ROS log level in rosconsole.conf -->
@@ -13,14 +13,15 @@
   <arg name="command_prefix"
       default=""/>
 
-  <node pkg="habitat_ros" name="habitat_ros"
-      type="habitat_ros_node.py" clear_params="true" output="screen"
+  <!-- Node -->
+  <node pkg="habitat_ros"
+      name="habitat_ros"
+      type="habitat_ros_node.py"
+      clear_params="true"
+      output="screen"
       launch-prefix="$(arg command_prefix)">
-
     <!-- Include rosparam yaml file -->
     <rosparam command="load" file="$(arg habitat_ros_config_file)"/>
-    <!-- Expand the library search path to find the libraries in habitat_sim -->
-    <!-- <env name="LD_LIBRARY_PATH" value="$(find habitat_ros)/habitat_sim/build/lib.linux-x86_64-3.8/habitat_sim/_ext:$LD_LIBRARY_PATH" /> -->
   </node>
 </launch>
 
