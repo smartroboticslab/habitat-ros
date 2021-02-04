@@ -107,7 +107,7 @@ def read_key(window) -> Tuple[Movement, bool]:
             elif key == "l":
                 m = Movement(0, 0, -1)
                 break
-            time.sleep(0.005)
+            time.sleep(0.05)
     finally:
         curses.endwin()
     return m, quit
