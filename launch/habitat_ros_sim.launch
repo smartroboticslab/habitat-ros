@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London -->
+<!-- SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou -->
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<launch>
+  <!-- Remap topic names -->
+  <remap from="/mav_sim/pose" to="/habitat/external_pose"/>
+
+  <!-- habitat-ros node -->
+  <include file="$(find habitat_ros)/launch/habitat_ros.launch">
+  </include>
+
+  <!-- MAV simulator node arguments -->
+  <arg name="habitat_ros_mav_sim_config_file"
+      default="$(find habitat_ros)/config/config.yaml"/>
+  <arg name="command_prefix"
+      default=""/>
+
+  <!-- MAV simulator node -->
+  <node pkg="habitat_ros"
+      name="habitat_ros_mav_sim"
+      type="habitat_ros_mav_sim_node.py"
+      clear_params="true"
+      output="screen"
+      launch-prefix="$(arg command_prefix)">
+    <!-- Include rosparam yaml file -->
+    <rosparam command="load" file="$(arg habitat_ros_mav_sim_config_file)"/>
+  </node>
+</launch>
+
