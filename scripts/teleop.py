@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
-# SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
+# SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London
+# SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
 
 import argparse
 import curses
 import math
 import numpy as np
-import os
 import quaternion
 import rospy
-import sys
 import time
 
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
-from typing import List, Tuple
+from typing import Tuple
 
 
 
@@ -95,7 +93,7 @@ def pose_to_path(pose: PoseStamped, new_pose: PoseStamped) -> Path:
 
 
 
-def read_key(window) -> Tuple[Movement, bool]:
+def wait_for_key(window) -> Tuple[Movement, bool]:
     m = Movement(0, 0, 0)
     quit = False
     try:
@@ -177,7 +175,7 @@ def main() -> None:
     print_help(window)
     while not (rospy.is_shutdown() or quit):
         print_pose_stamped(pose, window)
-        movement, quit = read_key(window) # blocks
+        movement, quit = wait_for_key(window)
         new_pose = update_pose(pose, movement)
         if args.publish_path:
             path_pub.publish(pose_to_path(pose, new_pose))

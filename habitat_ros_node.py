@@ -17,7 +17,7 @@ import rospy
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 
 
@@ -158,10 +158,11 @@ class HabitatROSNode:
     _sem_class_topic_name = '/habitat/semantic_class/'
     _sem_instance_topic_name = '/habitat/semantic_instance/'
     _habitat_pose_topic_name = '/habitat/pose'
+
+    # Subscribed topic names
     _external_pose_topic_name = '/habitat/external_pose'
 
-    # Transforms between the habitat frame H (y-up) and the world frame W
-    # (z-up)
+    # Transforms between the habitat frame H (y-up) and the world frame W (z-up)
     _T_WH = np.identity(4)
     _T_WH[0:3, 0:3] = quaternion.as_rotation_matrix(hs.utils.common.quat_from_two_vectors(
             hs.geo.GRAVITY, np.array([0.0, 0.0, -1.0])))
@@ -186,7 +187,7 @@ class HabitatROSNode:
         # Setup the external pose subscriber
         rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
                 self._pose_callback)
-        rospy.loginfo('Node ready')
+        rospy.loginfo('Habitat node ready')
         # Main loop
         if self.config['fps'] > 0:
             rate = rospy.Rate(self.config['fps'])
@@ -238,7 +239,8 @@ class HabitatROSNode:
 
 
     def _init_habitat(self, config: Config) -> Sim:
-        """Initialize the Habitat simulator with sensors and scene file"""
+        """Initialize the Habitat simulator, create the sensors and load the
+        scene file"""
         backend_config = hs.SimulatorConfiguration()
         backend_config.scene.id = (config['scene_file'])
         agent_config = hs.AgentConfiguration()
@@ -266,9 +268,8 @@ class HabitatROSNode:
         T_HC = combine_pose(t_HC, q_HC)
         self.T_WB = self._T_HC_to_T_WB(T_HC)
         t_WB, q_WB = split_pose(self.T_WB)
-        rospy.loginfo('Initial t_WB:           ' + str(t_WB))
-        rospy.loginfo('Initial q_WB (w,x,y,z): ' + str(q_WB))
-        rospy.loginfo('Habitat simulator initialized')
+        rospy.loginfo('Habitat initial t_WB:           ' + str(t_WB))
+        rospy.loginfo('Habitat initial q_WB (w,x,y,z): ' + str(q_WB))
         return sim
 
 
@@ -313,8 +314,8 @@ class HabitatROSNode:
 
 
     def _generate_instance_to_class_map(self, objects: List[hs.scene.SemanticObject]) -> np.ndarray:
-        """Given the objects in the scene, create an array that maps instance IDs to
-        class IDs"""
+        """Given the objects in the scene, create an array that maps instance
+        IDs to class IDs"""
         map = np.zeros(len(objects), dtype=np.uint8)
         for instance_id in range(len(objects)):
             map[instance_id] = objects[instance_id].category.index()
@@ -473,6 +474,7 @@ class HabitatROSNode:
 
 
     def _teleport(self) -> None:
+        """Move the habitat sensor to the pose contained in self.T_WB"""
         self.T_WB_mutex.acquire()
         t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
         self.T_WB_mutex.release()
