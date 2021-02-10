@@ -246,7 +246,7 @@ class HabitatROSNode:
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
-            config[name] = rospy.get_param('~' + name, val)
+            config[name] = rospy.get_param('~habitat_ros/' + name, val)
         # Get an absolute path from the supplied scene file
         config['scene_file'] = os.path.expanduser(config['scene_file'])
         if not os.path.isabs(config['scene_file']):
