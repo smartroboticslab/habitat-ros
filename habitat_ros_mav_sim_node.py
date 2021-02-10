@@ -11,7 +11,7 @@ import quaternion
 import rospy
 
 from collections import deque
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Path
 from typing import Any, Dict, Tuple
 
@@ -34,6 +34,13 @@ def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
     T[0:3, 3] = t
     T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
     return T
+
+def msg_to_pose(msg: Pose) -> np.array:
+    """Convert a ros Pose message to a 4x4 pose Matrix."""
+    t = [msg.position.x, msg.position.y, msg.position.z]
+    q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
+            msg.orientation.y, msg.orientation.z)
+    return combine_pose(t, q)
 
 
 
@@ -191,22 +198,14 @@ class SimpleMAVSimNode:
         self._pose_mutex.acquire()
         # Set the current and start poses to the first path vertex
         first_T_WB = path.poses[0].pose
-        first_t_WB = [first_T_WB.position.x, first_T_WB.position.y,
-                first_T_WB.position.z]
-        first_q_WB = quaternion.quaternion(first_T_WB.orientation.w,
-                first_T_WB.orientation.x, first_T_WB.orientation.y,
-                first_T_WB.orientation.z)
-        self._T_WB = combine_pose(first_t_WB, first_q_WB)
+        self._T_WB = msg_to_pose(first_T_WB)
         self._start_T_WB = self._T_WB
         self._start_T_WB_time = rospy.get_time()
         # Clear the queue of any previous paths and add the goal poses
         self._goal_T_WBs.clear()
         for i in range(1, len(path.poses)):
             p = path.poses[i].pose
-            t_WB = [p.position.x, p.position.y, p.position.z]
-            q_WB = quaternion.quaternion(p.orientation.w, p.orientation.x,
-                    p.orientation.y, p.orientation.z)
-            self._goal_T_WBs.append(combine_pose(t_WB, q_WB))
+            self._goal_T_WBs.append(msg_to_pose(p))
         self._pose_mutex.release()
 
 
