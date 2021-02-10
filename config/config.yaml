@@ -17,6 +17,10 @@ scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-cast
 #scene_file: "~/Documents/Datasets/Matterport3D/v1/tasks/mp3d_habitat/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb"
 enable_semantics: false
 visualize_semantics: false
+#initial_T_WB: [3, -20, 2] # Position only
+#initial_T_WB: [0, 0, 0.707, 0.707] # Orientation only
+#initial_T_WB: [0, -20, 2, 0, 0, 0.707, 0.707] # Position and orientation
+#initial_T_WB: [0, -1, 0, 3, 1, 0, 0, -20, 0, 0, 1, 1, 0, 0, 0, 1] # 4x4 matrix
 
 # Simple MAV simulator settings
 habitat_ros_mav_sim:

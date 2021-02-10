@@ -17,7 +17,7 @@ import rospy
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 
 
@@ -40,6 +40,32 @@ def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
     T = np.identity(4)
     T[0:3, 3] = t
     T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
+    return T
+
+def list_to_pose(l: List) -> Union[np.array, None]:
+    n = len(l)
+    if n == 3:
+        # Position: tx, ty, tz
+        T = np.identity(4)
+        T[0:3,3] = np.array(l).T
+    elif n == 4:
+        # Orientation quaternion: qx, qy, qz, qw
+        q = quaternion.quaternion(l[3], l[0], l[1], l[2])
+        T = np.identity(4)
+        T[0:3,0:3] = quaternion.as_rotation_matrix(q)
+    elif n == 7:
+        # Position and orientation quaternion: tx, ty, tz, qx, qy, qz, qw
+        q = quaternion.quaternion(l[6], l[3], l[4], l[5])
+        T = np.identity(4)
+        T[0:3,3] = np.array(l[0:3]).T
+        T[0:3,0:3] = quaternion.as_rotation_matrix(q)
+    elif n == 16:
+        # 4x4 pose matrix in row-major order
+        T = np.array(l)
+        T = T.reshape((4, 4))
+        rospy.logwarn(T)
+    else:
+        T = None
     return T
 
 
@@ -213,9 +239,10 @@ class HabitatROSNode:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
         param_names = [ 'width', 'height', 'near_plane', 'far_plane', 'fx',
-                'fps', 'scene_file', 'enable_semantics', 'visualize_semantics']
+                'fps', 'scene_file', 'enable_semantics', 'visualize_semantics',
+                'initial_T_WB']
         param_default_values = [ 640, 480, 0.1, 10.0, 525.0, 30, '', False,
-                False]
+                False, []]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
@@ -233,6 +260,11 @@ class HabitatROSNode:
         elif not os.path.isfile(config['scene_file']):
             rospy.logfatal('Scene file ' + config['scene_file'] + ' does not exist')
             raise rospy.ROSException
+        # Create the initial T_WB matrix
+        T = list_to_pose(config['initial_T_WB'])
+        if T is None and config['initial_T_WB']:
+            rospy.logerr('Invalid initial T_WB. Expected list of 3, 4, 7 or 16 elements')
+        config['initial_T_WB'] = T
         self.print_node_config(config)
         return config
 
@@ -261,12 +293,18 @@ class HabitatROSNode:
         config['instance_to_class'] = self._generate_instance_to_class_map(sim.semantic_scene.objects)
         if config['enable_semantics'] and config['instance_to_class'].size == 0:
             rospy.logwarn('The scene contains no semantics')
-        # Get the initial agent pose
+        # Get or set the initial agent pose
         agent = sim.get_agent(0)
-        t_HC = agent.get_state().position
-        q_HC = agent.get_state().rotation
-        T_HC = combine_pose(t_HC, q_HC)
-        self.T_WB = self._T_HC_to_T_WB(T_HC)
+        if config['initial_T_WB'] is None:
+            t_HC = agent.get_state().position
+            q_HC = agent.get_state().rotation
+            T_HC = combine_pose(t_HC, q_HC)
+            self.T_WB = self._T_HC_to_T_WB(T_HC)
+        else:
+            self.T_WB = config['initial_T_WB']
+            t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
+            agent_state = hs.agent.AgentState(t_HC, q_HC)
+            agent.set_state(agent_state)
         t_WB, q_WB = split_pose(self.T_WB)
         rospy.loginfo('Habitat initial t_WB:           ' + str(t_WB))
         rospy.loginfo('Habitat initial q_WB (w,x,y,z): ' + str(q_WB))
