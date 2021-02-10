@@ -88,14 +88,18 @@ immediately moved there.
 
 #### Settings
 
-| Setting name | Type    | Description |
-| :----------- | :------ | :---------- |
-| `width`      | `int`   | The width of all rendered images in pixels. |
-| `height`     | `int`   | The height of all rendered images in pixels. |
-| `near_plane` | `float` | The near plane of the depth sensor in metres. No depth values smaller than `near_plane` will be produced. |
-| `far_plane`  | `float` | The far plane of the depth sensor in metres. No depth values greater than `far_plane` will be produced. |
-| `fx`         | `float` | The focal lendth of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
-| `fps`        | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
+| Setting name                      | Type    | Description |
+| :-------------------------------- | :------ | :---------- |
+| `habitat_ros/width`               | `int`   | The width of all rendered images in pixels. |
+| `habitat_ros/height`              | `int`   | The height of all rendered images in pixels. |
+| `habitat_ros/near_plane`          | `float` | The near plane of the depth sensor in metres. No depth values smaller than `near_plane` will be produced. |
+| `habitat_ros/far_plane`           | `float` | The far plane of the depth sensor in metres. No depth values greater than `far_plane` will be produced. |
+| `habitat_ros/fx`                  | `float` | The focal lendth of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
+| `habitat_ros/fps`                 | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
+| `habitat_ros/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
+| `habitat_ros/scene_file`          | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
+| `habitat_ros/initial_T_WB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
+| `habitat_ros/visualize_semantics` | `bool`  | Generate and publish visualizations of the semantic class and instance IDs. Useful for debugging. |
 
 
 
