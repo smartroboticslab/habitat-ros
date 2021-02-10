@@ -152,31 +152,31 @@ class SimpleMAVSimNode:
     _pose_topic = "/mav_sim/pose"
     # Subscribed topic names
     _goal_path_topic = "/mav_sim/goal_path"
+    _init_pose_topic = "/habitat/pose"
 
 
 
     def __init__(self) -> None:
         rospy.init_node("habitat_ros_mav_sim")
-        # Setup data members
-        self._pose_mutex = threading.Lock()
-        self._init_mutex = threading.Lock()
-        self._T_WB = np.identity(4)
-        self._start_T_WB = self._T_WB
-        self._start_T_WB_time = rospy.get_time()
-        self._goal_T_WBs = deque()
         # Read the configuration parameters
         self._config = {"a_max": [1.0, 1.0, 0.5], "w_max": [0.1, 0.1, 0.05],
                 "sim_freq": 60}
         self._config = read_config(self._config)
         rospy.loginfo("Simple MAV simulator parameters:")
         print_config(self._config)
+        # Initialize data members
+        self._pose_mutex = threading.Lock()
+        self._start_T_WB_time = rospy.get_time()
+        self._goal_T_WBs = deque()
+        # Initialize the pose from the habitat node
+        T_WB_msg = rospy.wait_for_message(self._init_pose_topic, PoseStamped)
+        self._T_WB = msg_to_pose(T_WB_msg.pose)
+        self._start_T_WB = self._T_WB
         # Setup publishers and subscribers
         self._pub = rospy.Publisher(self._pose_topic, PoseStamped, queue_size=10)
-        # Wait for the first goal, then setup the subscriber
-        rospy.loginfo("Simple MAV simulator ready")
-        self._path_callback(rospy.wait_for_message(self._goal_path_topic, Path))
         rospy.Subscriber(self._goal_path_topic, Path, self._path_callback)
         # Main loop
+        rospy.loginfo("Simple MAV simulator ready")
         if self._config["sim_freq"] > 0:
             rate = rospy.Rate(self._config["sim_freq"])
         while not rospy.is_shutdown():
