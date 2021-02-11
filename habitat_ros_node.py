@@ -36,8 +36,6 @@ def read_config(config: Config, ns: str) -> Config:
         new_config[name] = rospy.get_param("~" + ns + "/" + name, val)
     return new_config
 
-
-
 def print_config(config: Config) -> None:
     """Print a dictionary containing the configuration to the ROS info log"""
     for name, val in config.items():
