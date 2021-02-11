@@ -13,9 +13,10 @@ import numpy as np
 import quaternion
 import rospkg
 import rospy
+import tf2_ros
 
 from cv_bridge import CvBridge
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, Transform, TransformStamped
 from sensor_msgs.msg import CameraInfo, Image
 from typing import Any, Dict, List, Tuple, Union
 
@@ -41,6 +42,20 @@ def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
     T[0:3, 3] = t
     T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
     return T
+
+def msg_to_pose(msg: Pose) -> np.array:
+    """Convert a ROS Pose message to a 4x4 pose Matrix."""
+    t = [msg.position.x, msg.position.y, msg.position.z]
+    q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
+            msg.orientation.y, msg.orientation.z)
+    return combine_pose(t, q)
+
+def msg_to_transform(msg: Transform) -> np.array:
+    """Convert a ROS Transform message to a 4x4 transform Matrix."""
+    t = [msg.translation.x, msg.translation.y, msg.translation.z]
+    q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
+            msg.rotation.y, msg.rotation.z)
+    return combine_pose(t, q)
 
 def list_to_pose(l: List) -> Union[np.array, None]:
     n = len(l)
@@ -79,6 +94,14 @@ def fx_to_hfov(fx: float, width: int) -> float:
     """Convert focal length in pixels to horizontal field of view in degrees.
     https://github.com/facebookresearch/habitat-sim/issues/402"""
     return math.degrees(2.0 * math.atan(float(width) / (2.0 * fx)))
+
+
+
+def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
+    try:
+        return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        return None
 
 
 
@@ -210,6 +233,9 @@ class HabitatROSNode:
         self.pub = self._init_publishers(self.config)
         # Initialize the pose mutex
         self.T_WB_mutex = threading.Lock()
+        # Initialize the transform listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         # Setup the external pose subscriber
         rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
                 self._pose_callback)
@@ -401,17 +427,20 @@ class HabitatROSNode:
 
 
     def _pose_callback(self, pose: PoseStamped) -> None:
-        # Ignore poses in the wrong frame
-        if pose.header.frame_id != self.config['world_frame_id']:
-            rospy.logerr_once('External poses should have frame_id == "'
-                    + self.config['world_frame_id'] + '"')
+        # Find the required transform from some frame F to the world frame W as
+        # specified in self.config['world_frame_id']
+        T_WF = find_tf(self.tf_buffer, pose.header.frame_id, self.config['world_frame_id'])
+        if T_WF is None:
+            rospy.logerr_once('Could not find transform from frame '
+                    + pose.header.frame_id + ' to frame '
+                    + self.config['world_frame_id'])
             return
-        t_WB = [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
-        q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
-                pose.pose.orientation.y, pose.pose.orientation.z)
+        # Transform the pose
+        T_FB = msg_to_pose(pose.pose)
+        T_WB = T_WF.dot(T_FB)
         # Update the pose
         self.T_WB_mutex.acquire()
-        self.T_WB = combine_pose(t_WB, q_WB)
+        self.T_WB = T_WB
         self.T_WB_mutex.release()
 
 

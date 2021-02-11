@@ -9,11 +9,12 @@ import threading
 import numpy as np
 import quaternion
 import rospy
+import tf2_ros
 
 from collections import deque
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, Transform, TransformStamped
 from nav_msgs.msg import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
 
 
 
@@ -40,6 +41,13 @@ def msg_to_pose(msg: Pose) -> np.array:
     t = [msg.position.x, msg.position.y, msg.position.z]
     q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
             msg.orientation.y, msg.orientation.z)
+    return combine_pose(t, q)
+
+def msg_to_transform(msg: Transform) -> np.array:
+    """Convert a ROS Transform message to a 4x4 transform Matrix."""
+    t = [msg.translation.x, msg.translation.y, msg.translation.z]
+    q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
+            msg.rotation.y, msg.rotation.z)
     return combine_pose(t, q)
 
 
@@ -146,6 +154,14 @@ def read_config(config: Config) -> Config:
 
 
 
+def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
+    try:
+        return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        return None
+
+
+
 class SimpleMAVSimNode:
     # Published topic names
     _pose_topic = "/mav_sim/pose"
@@ -163,13 +179,23 @@ class SimpleMAVSimNode:
         self._config = read_config(self._config)
         rospy.loginfo("Simple MAV simulator parameters:")
         print_config(self._config)
+        # Initialize the transform listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         # Initialize data members
         self._pose_mutex = threading.Lock()
         self._start_T_WB_time = rospy.get_time()
         self._goal_T_WBs = deque()
         # Initialize the pose from the habitat node
-        T_WB_msg = rospy.wait_for_message(self._init_pose_topic, PoseStamped)
-        self._T_WB = msg_to_pose(T_WB_msg.pose)
+        T_FB_msg = rospy.wait_for_message(self._init_pose_topic, PoseStamped)
+        T_WF = find_tf(self.tf_buffer, T_FB_msg.header.frame_id, self._config['world_frame_id'])
+        if T_WF is None:
+            rospy.logfatal('Could not find transform from frame '
+                    + T_FB_msg.header.frame_id + ' to frame '
+                    + self._config['world_frame_id'])
+            raise rospy.ROSException
+        T_FB = msg_to_pose(T_FB_msg.pose)
+        self._T_WB = T_WF.dot(T_FB)
         self._start_T_WB = self._T_WB
         # Setup publishers and subscribers
         self._pub = rospy.Publisher(self._pose_topic, PoseStamped, queue_size=10)
@@ -190,14 +216,17 @@ class SimpleMAVSimNode:
         # Ignore empty paths
         if not path.poses:
             return
-        # Ignore paths in the wrong frame
-        if path.header.frame_id != self._config["world_frame_id"] \
-                or any([p.header.frame_id != self._config["world_frame_id"] for p in path.poses]):
+        # Transform the pose to the correct frame
+        T_WF = find_tf(self.tf_buffer, path.header.frame_id, self._config['world_frame_id'])
+        if T_WF is None:
+            rospy.logfatal('Could not find transform from frame '
+                    + path.header.frame_id + ' to frame '
+                    + self._config['world_frame_id'])
             return
         self._pose_mutex.acquire()
         # Set the current and start poses to the first path vertex
-        first_T_WB = path.poses[0].pose
-        self._T_WB = msg_to_pose(first_T_WB)
+        first_T_FB = msg_to_pose(path.poses[0].pose)
+        self._T_WB = T_WF.dot(first_T_FB)
         self._start_T_WB = self._T_WB
         self._start_T_WB_time = rospy.get_time()
         # Clear the queue of any previous paths and add the goal poses
