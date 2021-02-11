@@ -30,6 +30,21 @@ Sim = hs.Simulator
 
 
 
+def read_config(config: Config) -> Config:
+    new_config = config.copy()
+    for name, val in config.items():
+        new_config[name] = rospy.get_param("~habitat_ros_mav_sim/" + name, val)
+    return new_config
+
+
+
+def print_config(config: Config) -> None:
+    """Print a dictionary containing the configuration to the ROS info log"""
+    for name, val in config.items():
+        rospy.loginfo("  {: <25} {}".format(name + ":", str(val)))
+
+
+
 def split_pose(T: np.array) -> Tuple[np.array, quaternion.quaternion]:
     """Split a pose in a 4x4 matrix into a position vector and an orientation
     quaternion."""
@@ -253,14 +268,6 @@ class HabitatROSNode:
 
 
 
-    def print_node_config(self, config: Config) -> None:
-        """Print a dictionary containing the configuration to the ROS info log"""
-        rospy.loginfo('Habitat node parameters:')
-        for name, val in config.items():
-            rospy.loginfo('  {: <25} {}'.format(name + ':', str(val)))
-
-
-
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
@@ -291,7 +298,8 @@ class HabitatROSNode:
         if T is None and config['initial_T_WB']:
             rospy.logerr('Invalid initial T_WB. Expected list of 3, 4, 7 or 16 elements')
         config['initial_T_WB'] = T
-        self.print_node_config(config)
+        rospy.loginfo('Habitat node parameters:')
+        print_config(config)
         return config
 
 

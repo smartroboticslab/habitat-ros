@@ -16,39 +16,8 @@ from geometry_msgs.msg import Pose, PoseStamped, Transform, TransformStamped
 from nav_msgs.msg import Path
 from typing import Any, Dict, Tuple, Union
 
-
-
-# Custom type definitions
-Config = Dict[str, Any]
-
-
-
-def split_pose(T: np.array) -> Tuple[np.array, quaternion.quaternion]:
-    """Split a pose in a 4x4 matrix into a position vector and an orientation
-    quaternion."""
-    return T[0:3,3], quaternion.from_rotation_matrix(T[0:3,0:3])
-
-def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
-    """Combine a position vector and an orientation quaternion into a 4x4 pose
-    Matrix."""
-    T = np.identity(4)
-    T[0:3, 3] = t
-    T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
-    return T
-
-def msg_to_pose(msg: Pose) -> np.array:
-    """Convert a ros Pose message to a 4x4 pose Matrix."""
-    t = [msg.position.x, msg.position.y, msg.position.z]
-    q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
-            msg.orientation.y, msg.orientation.z)
-    return combine_pose(t, q)
-
-def msg_to_transform(msg: Transform) -> np.array:
-    """Convert a ROS Transform message to a 4x4 transform Matrix."""
-    t = [msg.translation.x, msg.translation.y, msg.translation.z]
-    q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
-            msg.rotation.y, msg.rotation.z)
-    return combine_pose(t, q)
+from habitat_ros_node import (Config, read_config, print_config, split_pose,
+        combine_pose, msg_to_pose, msg_to_transform, find_tf)
 
 
 
@@ -136,29 +105,6 @@ def trajectory_time(T_0: np.array, T_f: np.array, a_max: np.array, w_max: np.arr
     yaw_time = trajectory_time_x(yaw_0, yaw_0 + yaw_diff, w_max[2])
     rotation_times = np.array([0.0, 0.0, yaw_time])
     return float(np.amax(np.maximum(translation_times, rotation_times)))
-
-
-
-def print_config(config: Config) -> None:
-    """Print a dictionary containing the configuration to the ROS info log"""
-    for name, val in config.items():
-        rospy.loginfo("  {: <25} {}".format(name + ":", str(val)))
-
-
-
-def read_config(config: Config) -> Config:
-    new_config = config.copy()
-    for name, val in config.items():
-        new_config[name] = rospy.get_param("~habitat_ros_mav_sim/" + name, val)
-    return new_config
-
-
-
-def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
-    try:
-        return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        return None
 
 
 
