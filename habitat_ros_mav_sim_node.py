@@ -114,15 +114,18 @@ class SimpleMAVSimNode:
     # Subscribed topic names
     _goal_path_topic = "/mav_sim/goal_path"
     _init_pose_topic = "/habitat/pose"
+    _default_config = {
+            "a_max": [1.0, 1.0, 0.5],
+            "w_max": [0.1, 0.1, 0.05],
+            "sim_freq": 60,
+            "world_frame_id": "map"}
 
 
 
     def __init__(self) -> None:
         rospy.init_node("habitat_ros_mav_sim")
         # Read the configuration parameters
-        self._config = {"a_max": [1.0, 1.0, 0.5], "w_max": [0.1, 0.1, 0.05],
-                "sim_freq": 60, "world_frame_id": "map"}
-        self._config = read_config(self._config)
+        self._config = read_config(self._default_config, "habitat_ros_mav_sim")
         rospy.loginfo("Simple MAV simulator parameters:")
         print_config(self._config)
         # Initialize the transform listener

@@ -30,10 +30,10 @@ Sim = hs.Simulator
 
 
 
-def read_config(config: Config) -> Config:
+def read_config(config: Config, ns: str) -> Config:
     new_config = config.copy()
     for name, val in config.items():
-        new_config[name] = rospy.get_param("~habitat_ros_mav_sim/" + name, val)
+        new_config[name] = rospy.get_param("~" + ns + "/" + name, val)
     return new_config
 
 
@@ -238,6 +238,19 @@ class HabitatROSNode:
             (-1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
     _T_BC = np.linalg.inv(_T_CB)
 
+    _default_config = {
+            'width': 640,
+            'height': 480,
+            'near_plane': 0.1,
+            'far_plane': 10.0,
+            'fx': 525.0,
+            'fps': 30,
+            'enable_semantics': False,
+            'scene_file': '',
+            'initial_T_WB': [],
+            'world_frame_id': 'map',
+            'visualize_semantics': False}
+
 
 
     def __init__(self):
@@ -270,16 +283,8 @@ class HabitatROSNode:
 
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary"""
-        # Available parameter names and default values
-        param_names = ['width', 'height', 'near_plane', 'far_plane', 'fx',
-                'fps', 'enable_semantics', 'scene_file', 'initial_T_WB',
-                'world_frame_id', 'visualize_semantics']
-        param_default_values = [640, 480, 0.1, 10.0, 525.0, 30, False, '', [],
-                'map', False]
         # Read the parameters
-        config = {}
-        for name, val in zip(param_names, param_default_values):
-            config[name] = rospy.get_param('~habitat_ros/' + name, val)
+        config = read_config(self._default_config, "habitat_ros")
         # Get an absolute path from the supplied scene file
         config['scene_file'] = os.path.expanduser(config['scene_file'])
         if not os.path.isabs(config['scene_file']):
