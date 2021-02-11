@@ -99,6 +99,7 @@ immediately moved there.
 | `habitat_ros/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
 | `habitat_ros/scene_file`          | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
 | `habitat_ros/initial_T_WB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
+| `habitat_ros/world_frame_id`      | `str`   | The ID of the World (W) frame. Poses received in `/habitat/external_pose` are transformed to this frame. |
 | `habitat_ros/visualize_semantics` | `bool`  | Generate and publish visualizations of the semantic class and instance IDs. Useful for debugging. |
 
 

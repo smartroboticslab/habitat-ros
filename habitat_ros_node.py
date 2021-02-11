@@ -238,11 +238,11 @@ class HabitatROSNode:
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary"""
         # Available parameter names and default values
-        param_names = [ 'width', 'height', 'near_plane', 'far_plane', 'fx',
-                'fps', 'scene_file', 'enable_semantics', 'visualize_semantics',
-                'initial_T_WB']
-        param_default_values = [ 640, 480, 0.1, 10.0, 525.0, 30, '', False,
-                False, []]
+        param_names = ['width', 'height', 'near_plane', 'far_plane', 'fx',
+                'fps', 'enable_semantics', 'scene_file', 'initial_T_WB',
+                'world_frame_id', 'visualize_semantics']
+        param_default_values = [640, 480, 0.1, 10.0, 525.0, 30, False, '', [],
+                'map', False]
         # Read the parameters
         config = {}
         for name, val in zip(param_names, param_default_values):
@@ -402,8 +402,9 @@ class HabitatROSNode:
 
     def _pose_callback(self, pose: PoseStamped) -> None:
         # Ignore poses in the wrong frame
-        if pose.header.frame_id != 'world':
-            rospy.logerr_once('External poses should have frame_id == "world"')
+        if pose.header.frame_id != self.config['world_frame_id']:
+            rospy.logerr_once('External poses should have frame_id == "'
+                    + self.config['world_frame_id'] + '"')
             return
         t_WB = [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
         q_WB = quaternion.quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
@@ -420,7 +421,7 @@ class HabitatROSNode:
         position = observation['T_WB'][0:3, 3]
         orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
         p = PoseStamped()
-        p.header.frame_id = 'world'
+        p.header.frame_id = self.config['world_frame_id']
         # Return the current ROS time since the habitat simulator does not provide
         # one. sim.get_world_time() always returns 0
         p.header.stamp = observation['timestamp']

@@ -17,6 +17,7 @@ habitat_ros:
     scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"
     #scene_file: "~/Documents/Datasets/Matterport3D/v1/tasks/mp3d_habitat/mp3d/1LXtFkjw3qL/1LXtFkjw3qL.glb"
     initial_T_WB: []
+    world_frame_id: "map"
 
     # Visualization settings
     visualize_semantics: false

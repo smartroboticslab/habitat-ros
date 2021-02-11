@@ -147,7 +147,6 @@ def read_config(config: Config) -> Config:
 
 
 class SimpleMAVSimNode:
-    _frame_id = "world"
     # Published topic names
     _pose_topic = "/mav_sim/pose"
     # Subscribed topic names
@@ -160,7 +159,7 @@ class SimpleMAVSimNode:
         rospy.init_node("habitat_ros_mav_sim")
         # Read the configuration parameters
         self._config = {"a_max": [1.0, 1.0, 0.5], "w_max": [0.1, 0.1, 0.05],
-                "sim_freq": 60}
+                "sim_freq": 60, "world_frame_id": "map"}
         self._config = read_config(self._config)
         rospy.loginfo("Simple MAV simulator parameters:")
         print_config(self._config)
@@ -192,8 +191,8 @@ class SimpleMAVSimNode:
         if not path.poses:
             return
         # Ignore paths in the wrong frame
-        if path.header.frame_id != self._frame_id \
-                or any([p.header.frame_id != self._frame_id for p in path.poses]):
+        if path.header.frame_id != self._config["world_frame_id"] \
+                or any([p.header.frame_id != self._config["world_frame_id"] for p in path.poses]):
             return
         self._pose_mutex.acquire()
         # Set the current and start poses to the first path vertex
@@ -253,7 +252,7 @@ class SimpleMAVSimNode:
         # Populate the message fields
         msg = PoseStamped()
         msg.header.stamp = rospy.get_rostime()
-        msg.header.frame_id = self._frame_id
+        msg.header.frame_id = self._config["world_frame_id"]
         msg.pose.position.x = position[0]
         msg.pose.position.y = position[1]
         msg.pose.position.z = position[2]

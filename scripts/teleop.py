@@ -57,7 +57,7 @@ def init_pose() -> PoseStamped:
 def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     new_p = PoseStamped()
     new_p.header.stamp = rospy.get_rostime()
-    new_p.header.frame_id = "world"
+    new_p.header.frame_id = "map"
     q_current = quaternion.quaternion(p.pose.orientation.w,
             p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
     R_current = quaternion.as_rotation_matrix(q_current)
@@ -86,7 +86,7 @@ def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
 def pose_to_path(pose: PoseStamped, new_pose: PoseStamped) -> Path:
     path = Path()
     path.header.stamp = rospy.get_rostime()
-    path.header.frame_id = "world"
+    path.header.frame_id = "map"
     path.poses.append(pose)
     path.poses.append(new_pose)
     return path
