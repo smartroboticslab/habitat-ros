@@ -22,6 +22,9 @@
       launch-prefix="$(arg command_prefix)">
     <!-- Include rosparam yaml file -->
     <rosparam command="load" file="$(arg habitat_ros_config_file)"/>
+    <!-- Hide Habitat-Sim logs -->
+    <env name="GLOG_minloglevel" value="1"/>
+    <env name="MAGNUM_LOG" value="quiet"/>
   </node>
 </launch>
 
