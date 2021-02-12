@@ -355,8 +355,8 @@ class HabitatROSNode:
         rgb_sensor_spec.uuid = 'rgb'
         rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
         rgb_sensor_spec.resolution = [config['height'], config['width']]
-        rgb_sensor_spec.parameters['near'] = str(config['near_plane'])
-        rgb_sensor_spec.parameters['far'] = str(config['far_plane'])
+        rgb_sensor_spec.parameters['near'] = str(0.00001)
+        rgb_sensor_spec.parameters['far'] = str(1000)
         rgb_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
         return rgb_sensor_spec
 
@@ -381,8 +381,8 @@ class HabitatROSNode:
         semantic_sensor_spec.uuid = 'semantic'
         semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
         semantic_sensor_spec.resolution = [config['height'], config['width']]
-        semantic_sensor_spec.parameters['near'] = str(config['near_plane'])
-        semantic_sensor_spec.parameters['far'] = str(config['far_plane'])
+        semantic_sensor_spec.parameters['near'] = str(0.00001)
+        semantic_sensor_spec.parameters['far'] = str(1000)
         semantic_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
         return semantic_sensor_spec
 
