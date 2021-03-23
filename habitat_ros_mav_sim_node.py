@@ -233,8 +233,8 @@ class SimpleMAVSimNode:
         # Clear the queue of any previous paths and add the goal poses
         self._goal_T_WBs.clear()
         for i in range(1, len(path.poses)):
-            p = path.poses[i].pose
-            self._goal_T_WBs.append(msg_to_pose(p))
+            T_FB = msg_to_pose(path.poses[i].pose)
+            self._goal_T_WBs.append(T_WF.dot(T_FB))
         self._pose_mutex.release()
 
 
