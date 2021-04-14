@@ -12,6 +12,7 @@ habitat_ros:
     fx: 525.0
     fps: 30
     enable_semantics: false
+    allowed_classes: []
 
     # Scene settings
     scene_file: "habitat_sim/data/scene_datasets/habitat-test-scenes/skokloster-castle.glb"

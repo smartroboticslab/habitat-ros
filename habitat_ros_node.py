@@ -244,6 +244,7 @@ class HabitatROSNode:
             'fx': 525.0,
             'fps': 30,
             'enable_semantics': False,
+            'allowed_classes': [],
             'scene_file': '',
             'initial_T_WB': [],
             'world_frame_id': 'map',
@@ -456,6 +457,18 @@ class HabitatROSNode:
 
 
 
+    def _filter_sem_classes(self, observation: Observation) -> None:
+        # Generate a per-pixel boolean matrix
+        allowed = np.vectorize(lambda x: x in self.config['allowed_classes'])
+        allowed_pixels = allowed(observation['sem_classes'])
+        # Set all False pixels to 0 on the class and instance images
+        class_zeros = np.zeros(observation['sem_classes'].shape, dtype=observation['sem_classes'].dtype)
+        instance_zeros = np.zeros(observation['sem_instances'].shape, dtype=observation['sem_instances'].dtype)
+        observation['sem_classes'] = np.where(allowed_pixels, observation['sem_classes'], class_zeros)
+        observation['sem_instances'] = np.where(allowed_pixels, observation['sem_instances'], instance_zeros)
+
+
+
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
         """Convert the agent pose in the observation to a PoseStamped message"""
         position = observation['T_WB'][0:3, 3]
@@ -590,6 +603,8 @@ class HabitatROSNode:
         pub['rgb'].publish(self._rgb_to_msg(obs))
         pub['depth'].publish(self._depth_to_msg(obs))
         if config['enable_semantics'] and config['instance_to_class'].size > 0:
+            if config['allowed_classes']:
+                self._filter_sem_classes(obs)
             pub['sem_class'].publish(self._sem_classes_to_msg(obs))
             pub['sem_instance'].publish(self._sem_instances_to_msg(obs))
             # Publish semantics visualisations

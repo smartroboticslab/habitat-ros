@@ -97,6 +97,7 @@ immediately moved there.
 | `habitat_ros/fx`                  | `float` | The focal lendth of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
 | `habitat_ros/fps`                 | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
 | `habitat_ros/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
+| `habitat_ros/allowed_classes`     | `List`  | Only class IDs present in this list will be present in the output images. All other object classes will have a class and instance ID of 0. Leave empty to return all the available classes. Having a non-empty list significantly impacts performance so its suggested to only use this option for debugging. |
 | `habitat_ros/scene_file`          | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
 | `habitat_ros/initial_T_WB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
 | `habitat_ros/world_frame_id`      | `str`   | The ID of the World (W) frame. Poses received in `/habitat/external_pose` are transformed to this frame. |
