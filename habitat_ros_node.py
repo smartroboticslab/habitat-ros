@@ -510,8 +510,7 @@ class HabitatROSNode:
 
     def _render_sem_instances_to_msg(self, observation: Observation) -> Image:
         """Render an instance ID image to a ROS Image message with pretty colours"""
-        color_img = np.array([self.class_colors[x % 41] for x in observation['sem_instances']],
-                dtype=np.uint8)
+        color_img = self.class_colors[observation['sem_instances'] % 41]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -520,8 +519,7 @@ class HabitatROSNode:
 
     def _render_sem_classes_to_msg(self, observation: Observation) -> Image:
         """Render a class ID image to a ROS Image message with pretty colours"""
-        color_img = np.array([self.class_colors[x] for x in observation['sem_classes']],
-                dtype=np.uint8)
+        color_img = self.class_colors[observation['sem_classes']]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
         return msg
