@@ -31,13 +31,16 @@ Sim = hs.Simulator
 
 
 def read_config(config: Config, ns: str) -> Config:
+    """Read the ROS parameters from the namespace into the configuration
+    dictionary and return the result. Parameters that don't exist in the ROS
+    namespace retain their initial values."""
     new_config = config.copy()
     for name, val in config.items():
         new_config[name] = rospy.get_param("~" + ns + "/" + name, val)
     return new_config
 
 def print_config(config: Config) -> None:
-    """Print a dictionary containing the configuration to the ROS info log"""
+    """Print a dictionary containing the configuration to the ROS info log."""
     for name, val in config.items():
         rospy.loginfo("  {: <25} {}".format(name + ":", str(val)))
 
@@ -50,27 +53,33 @@ def split_pose(T: np.array) -> Tuple[np.array, quaternion.quaternion]:
 
 def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
     """Combine a position vector and an orientation quaternion into a 4x4 pose
-    Matrix."""
+    matrix."""
     T = np.identity(4)
     T[0:3, 3] = t
     T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
     return T
 
 def msg_to_pose(msg: Pose) -> np.array:
-    """Convert a ROS Pose message to a 4x4 pose Matrix."""
+    """Convert a ROS Pose message to a 4x4 pose matrix."""
     t = [msg.position.x, msg.position.y, msg.position.z]
     q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
             msg.orientation.y, msg.orientation.z)
     return combine_pose(t, q)
 
 def msg_to_transform(msg: Transform) -> np.array:
-    """Convert a ROS Transform message to a 4x4 transform Matrix."""
+    """Convert a ROS Transform message to a 4x4 transform matrix."""
     t = [msg.translation.x, msg.translation.y, msg.translation.z]
     q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
             msg.rotation.y, msg.rotation.z)
     return combine_pose(t, q)
 
 def list_to_pose(l: List) -> Union[np.array, None]:
+    """Convert a list to a pose represented by a 4x4 homogeneous matrix. The
+    list may have a varying number of elements:
+    - 3 (translation: x, y, z)
+    - 4 (orientation quaternion: qx, qy, qz, qw)
+    - 7 (translation, orientation quaternion)
+    - 16 (4x4 homogeneous matrix in row-major from)"""
     n = len(l)
     if n == 3:
         # Position: tx, ty, tz
@@ -111,6 +120,7 @@ def fx_to_hfov(fx: float, width: int) -> float:
 
 
 def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
+    """Return the transformation relating the 2 frames."""
     try:
         return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
@@ -119,7 +129,7 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 
 
 class HabitatROSNode:
-    # Convert Matterport3D class ID to class name
+    # Dictionary from Matterport3D class IDs to class names
     class_id_to_name = {
         0: 'void',
         1: 'wall',
@@ -230,12 +240,13 @@ class HabitatROSNode:
             hs.geo.GRAVITY, np.array([0.0, 0.0, -1.0])))
     _T_HW = np.linalg.inv(_T_WH)
 
-    # Transforms between the habitat camera frame C (-z-forward, y-up) and ROS
-    # body frame B (x-forward, z-up)
+    # Transforms between the habitat camera frame C (-z-forward, y-up) and the
+    # ROS body frame B (x-forward, z-up)
     _T_CB = np.array([(0.0, -1.0, 0.0, 0.0), (0.0, 0.0, 1.0, 0.0),
             (-1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
     _T_BC = np.linalg.inv(_T_CB)
 
+    # The default node options
     _default_config = {
             'width': 640,
             'height': 480,
@@ -281,7 +292,7 @@ class HabitatROSNode:
 
 
     def _read_node_config(self) -> Config:
-        """Read the node parameters, print them and return a dictionary"""
+        """Read the node parameters, print them and return a dictionary."""
         # Read the parameters
         config = read_config(self._default_config, "habitat_ros")
         # Get an absolute path from the supplied scene file
@@ -310,7 +321,7 @@ class HabitatROSNode:
 
     def _init_habitat(self, config: Config) -> Sim:
         """Initialize the Habitat simulator, create the sensors and load the
-        scene file"""
+        scene file."""
         backend_config = hs.SimulatorConfiguration()
         backend_config.scene.id = (config['scene_file'])
         agent_config = hs.AgentConfiguration()
@@ -351,7 +362,7 @@ class HabitatROSNode:
 
 
     def _rgb_sensor_config(self, config: Config) -> hs.SensorSpec:
-        """Return the configuration for a Habitat color sensor"""
+        """Return the configuration for a Habitat color sensor."""
         rgb_sensor_spec = hs.SensorSpec()
         rgb_sensor_spec.uuid = 'rgb'
         rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
@@ -364,7 +375,7 @@ class HabitatROSNode:
 
 
     def _depth_sensor_config(self, config: Config) -> hs.SensorSpec:
-        """Return the configuration for a Habitat depth sensor"""
+        """Return the configuration for a Habitat depth sensor."""
         depth_sensor_spec = hs.SensorSpec()
         depth_sensor_spec.uuid = 'depth'
         depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
@@ -377,7 +388,7 @@ class HabitatROSNode:
 
 
     def _semantic_sensor_config(self, config: Config) -> hs.SensorSpec:
-        """Return the configuration for a Habitat semantic sensor"""
+        """Return the configuration for a Habitat semantic sensor."""
         semantic_sensor_spec = hs.SensorSpec()
         semantic_sensor_spec.uuid = 'semantic'
         semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
@@ -391,7 +402,7 @@ class HabitatROSNode:
 
     def _generate_instance_to_class_map(self, objects: List[hs.scene.SemanticObject]) -> np.ndarray:
         """Given the objects in the scene, create an array that maps instance
-        IDs to class IDs"""
+        IDs to class IDs."""
         map = np.zeros(len(objects), dtype=np.uint8)
         for instance_id in range(len(objects)):
             map[instance_id] = objects[instance_id].category.index()
@@ -405,7 +416,7 @@ class HabitatROSNode:
 
 
     def _init_publishers(self, config: Config) -> Publishers:
-        """Initialize and return the image and pose publishers"""
+        """Initialize and return the image and pose publishers."""
         image_queue_size = 10
         pub = {}
         # Pose publisher
@@ -439,6 +450,8 @@ class HabitatROSNode:
 
 
     def _pose_callback(self, pose: PoseStamped) -> None:
+        """Callback for receiving external pose messages. It updates the agent
+        pose."""
         # Find the required transform from some frame F to the world frame W as
         # specified in self.config['world_frame_id']
         T_WF = find_tf(self.tf_buffer, pose.header.frame_id, self.config['world_frame_id'])
@@ -458,6 +471,8 @@ class HabitatROSNode:
 
 
     def _filter_sem_classes(self, observation: Observation) -> None:
+        """Remove object detections whose classes are not in the allowed class
+        list. Their class and instance IDs are set to 0."""
         # Generate a per-pixel boolean matrix
         allowed = np.vectorize(lambda x: x in self.config['allowed_classes'])
         allowed_pixels = allowed(observation['sem_classes'])
@@ -470,7 +485,8 @@ class HabitatROSNode:
 
 
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
-        """Convert the agent pose in the observation to a PoseStamped message"""
+        """Convert the agent pose from the observation to a ROS PoseStamped
+        message."""
         position = observation['T_WB'][0:3, 3]
         orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
         p = PoseStamped()
@@ -490,7 +506,7 @@ class HabitatROSNode:
 
 
     def _rgb_to_msg(self, observation: Observation) -> Image:
-        """Convert RGB image to ROS Image message"""
+        """Convert the RGB image from the observation to a ROS Image message."""
         msg = self._bridge.cv2_to_imgmsg(observation['rgb'], "rgb8")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -498,7 +514,8 @@ class HabitatROSNode:
 
 
     def _depth_to_msg(self, observation: Observation) -> Image:
-        """Convert depth image to ROS Image message"""
+        """Convert the depth image from the observation to a ROS Image
+        message."""
         msg = self._bridge.cv2_to_imgmsg(observation['depth'], "32FC1")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -506,7 +523,9 @@ class HabitatROSNode:
 
 
     def _sem_instances_to_msg(self, observation: Observation) -> Image:
-        """Convert instance ID image to ROS Image message"""
+        """Convert the instance ID image from the observation to a ROS Image
+        message."""
+        # Habitat-Sim produces 16-bit per-pixel instance ID images.
         msg = self._bridge.cv2_to_imgmsg(observation['sem_instances'].astype(np.uint16), "16UC1")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -514,7 +533,9 @@ class HabitatROSNode:
 
 
     def _sem_classes_to_msg(self, observation: Observation) -> Image:
-        """Convert class ID image to ROS Image message"""
+        """Convert the class ID image from the observation to a ROS Image
+        message."""
+        # Habitat-Sim produces 8-bit per-pixel class ID images.
         msg = self._bridge.cv2_to_imgmsg(observation['sem_classes'].astype(np.uint8), "8UC1")
         msg.header.stamp = observation['timestamp']
         return msg
@@ -522,7 +543,8 @@ class HabitatROSNode:
 
 
     def _render_sem_instances_to_msg(self, observation: Observation) -> Image:
-        """Render an instance ID image to a ROS Image message with pretty colours"""
+        """Visualize an instance ID image to a ROS Image message with
+        per-instance colours."""
         color_img = self.class_colors[observation['sem_instances'] % 41]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
@@ -531,7 +553,8 @@ class HabitatROSNode:
 
 
     def _render_sem_classes_to_msg(self, observation: Observation) -> Image:
-        """Render a class ID image to a ROS Image message with pretty colours"""
+        """Visualize a class ID image to a ROS Image message with per-class
+        colours."""
         color_img = self.class_colors[observation['sem_classes']]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation['timestamp']
@@ -540,6 +563,8 @@ class HabitatROSNode:
 
 
     def _camera_intrinsics_to_msg(self, config: Config) -> CameraInfo:
+        """Return a ROS message containing the Habitat-Sim camera intrinsic
+        parameters."""
         # TODO Set parameters in the message header?
         # http://docs.ros.org/electric/api/sensor_msgs/html/msg/CameraInfo.html
         msg = CameraInfo()
@@ -552,19 +577,19 @@ class HabitatROSNode:
 
 
     def _T_HC_to_T_WB(self, T_HC: np.array) -> np.array:
-        """Convert T_HC to T_WB"""
+        """Convert T_HC to T_WB."""
         return self._T_WH.dot(T_HC).dot(self._T_CB)
 
 
 
     def _T_WB_to_T_HC(self, T_WB: np.array) -> np.array:
-        """Convert T_WB to T_HC"""
+        """Convert T_WB to T_HC."""
         return self._T_HW.dot(T_WB).dot(self._T_BC)
 
 
 
     def _teleport(self) -> None:
-        """Move the habitat sensor to the pose contained in self.T_WB"""
+        """Move the habitat sensor to the pose contained in self.T_WB."""
         self.T_WB_mutex.acquire()
         t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
         self.T_WB_mutex.release()
@@ -599,6 +624,7 @@ class HabitatROSNode:
 
 
     def _publish_observation(self, obs: Observation, pub: Publishers, config: Config) -> None:
+        """Publish the sensor observations and ground truth pose."""
         pub['pose'].publish(self._pose_to_msg(obs))
         pub['rgb'].publish(self._rgb_to_msg(obs))
         pub['depth'].publish(self._depth_to_msg(obs))
