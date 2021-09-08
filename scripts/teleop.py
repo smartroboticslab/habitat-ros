@@ -210,7 +210,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-        curses.endwin()
-    except (KeyboardInterrupt, rospy.ROSInterruptException, curses.error) as e:
+    finally:
         curses.endwin()
 
