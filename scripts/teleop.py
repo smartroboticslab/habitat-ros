@@ -178,7 +178,7 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 
 
 
-def main(args: argparse.Namespace) -> None:
+def main_manual(args: argparse.Namespace) -> None:
     # Initialize ROS
     rospy.init_node("habitat_ros_teleop")
     if args.publish_path:
@@ -187,29 +187,29 @@ def main(args: argparse.Namespace) -> None:
         pose_pub = rospy.Publisher("/habitat/external_pose", PoseStamped, queue_size=10)
     # Initialize curses
     window = curses.initscr()
-    curses.noecho()
-    # Wait for the initial pose
-    print_waiting_for_pose(window)
-    pose = init_pose()
-    # Main loop
-    quit = False
-    print_help(window)
-    while not (rospy.is_shutdown() or quit):
-        print_pose_stamped(pose, window)
-        movement, quit = wait_for_key(window)
-        new_pose = update_pose(pose, movement)
-        if args.publish_path:
-            path_pub.publish(pose_to_path(pose, new_pose))
-        else:
-            pose_pub.publish(new_pose)
-        pose = new_pose
+    try:
+        curses.noecho()
+        # Wait for the initial pose
+        print_waiting_for_pose(window)
+        pose = init_pose()
+        # Main loop
+        quit = False
+        print_help(window)
+        while not (rospy.is_shutdown() or quit):
+            print_pose_stamped(pose, window)
+            movement, quit = wait_for_key(window)
+            new_pose = update_pose(pose, movement)
+            if args.publish_path:
+                path_pub.publish(pose_to_path(pose, new_pose))
+            else:
+                pose_pub.publish(new_pose)
+            pose = new_pose
+    finally:
+        curses.endwin()
 
 
 
 if __name__ == "__main__":
     args = parse_args()
-    try:
-        main(args)
-    finally:
-        curses.endwin()
+    main_manual(args)
 
