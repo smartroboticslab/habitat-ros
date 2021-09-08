@@ -19,22 +19,27 @@ from typing import Tuple
 
 class Movement:
     _fb_step = 0.25 # metres, forward/backward movement step
+    _lr_step = 0.25 # metres, left/right movement step
     _ud_step = 0.25 # metres, up/down movement step
-    _lr_step = 5 # degrees, left/right rotation step
+    _ro_step = 5 # degrees, left/right rotation step
 
-    def __init__(self, f: int=0, u: int=0, l: int=0) -> None:
-        self._fb = f
-        self._ud = u
-        self._lr = l
+    def __init__(self, forward: int=0, left: int=0, up: int=0, rotate_left: int=0) -> None:
+        self._fb = forward
+        self._lr = left
+        self._ud = up
+        self._ro = rotate_left
 
     def fb(self) -> float:
         return self._fb * Movement._fb_step
 
+    def lr(self) -> float:
+        return self._lr * Movement._lr_step
+
     def ud(self) -> float:
         return self._ud * Movement._ud_step
 
-    def lr(self) -> float:
-        return math.radians(self._lr * Movement._lr_step)
+    def ro(self) -> float:
+        return math.radians(self._ro * Movement._ro_step)
 
 
 
@@ -58,17 +63,21 @@ def update_pose(p: PoseStamped, m: Movement) -> PoseStamped:
     new_p = PoseStamped()
     new_p.header.stamp = rospy.get_rostime()
     new_p.header.frame_id = p.header.frame_id
+    new_p.pose.position = p.pose.position
     q_current = quaternion.quaternion(p.pose.orientation.w,
             p.pose.orientation.x, p.pose.orientation.y, p.pose.orientation.z)
     R_current = quaternion.as_rotation_matrix(q_current)
     theta_current = math.atan2(R_current[1,0], R_current[0,0])
     # Forwards/backwards movement
-    new_p.pose.position.x = p.pose.position.x + m.fb() * math.cos(theta_current)
-    new_p.pose.position.y = p.pose.position.y + m.fb() * math.sin(theta_current)
+    new_p.pose.position.x += m.fb() * math.cos(theta_current)
+    new_p.pose.position.y += m.fb() * math.sin(theta_current)
+    # Left/right movement
+    new_p.pose.position.x += m.lr() * math.cos(theta_current + math.pi/2)
+    new_p.pose.position.y += m.lr() * math.sin(theta_current + math.pi/2)
     # Up/down movement
     new_p.pose.position.z = p.pose.position.z + m.ud()
     # Left/right rotation
-    theta_new = theta_current + m.lr()
+    theta_new = theta_current + m.ro()
     R = np.eye(3)
     R[0,0] = math.cos(theta_new)
     R[0,1] = -math.sin(theta_new)
@@ -94,31 +103,37 @@ def pose_to_path(pose: PoseStamped, new_pose: PoseStamped) -> Path:
 
 
 def wait_for_key(window) -> Tuple[Movement, bool]:
-    m = Movement(0, 0, 0)
+    m = Movement()
     quit = False
     try:
         while True:
             key = window.getkey()
-            if key == "q":
+            if key == "Q":
                 quit = True
                 break
-            elif key == "k":
-                m = Movement(1, 0, 0)
+            elif key == "w":
+                m = Movement(forward=1)
                 break
-            elif key == "j":
-                m = Movement(-1, 0, 0)
+            elif key == "s":
+                m = Movement(forward=-1)
                 break
-            elif key == "u":
-                m = Movement(0, 1, 0)
+            elif key == "a":
+                m = Movement(left=1)
                 break
-            elif key == "m":
-                m = Movement(0, -1, 0)
+            elif key == "d":
+                m = Movement(left=-1)
                 break
-            elif key == "h":
-                m = Movement(0, 0, 1)
+            elif key == " ":
+                m = Movement(up=1)
                 break
-            elif key == "l":
-                m = Movement(0, 0, -1)
+            elif key == "c":
+                m = Movement(up=-1)
+                break
+            elif key == "q":
+                m = Movement(rotate_left=1)
+                break
+            elif key == "e":
+                m = Movement(rotate_left=-1)
                 break
             time.sleep(0.05)
     finally:
@@ -137,9 +152,11 @@ def print_waiting_for_pose(window) -> None:
 def print_help(window) -> None:
     window.addstr(0, 0, 'Position:')
     window.addstr(2, 0, 'Orientation (w,x,y,z):')
-    window.addstr(5, 0, 'k/j   forwards/backwards')
-    window.addstr(6, 0, 'u/m   up/down')
-    window.addstr(7, 0, 'h/l   rotate left/right')
+    window.addstr(5, 0, 'w/s       forwards/backwards')
+    window.addstr(6, 0, 'a/d       left/right')
+    window.addstr(7, 0, 'space/c   up/down')
+    window.addstr(8, 0, 'q/e       rotate left/right')
+    window.addstr(9, 0, 'Q         quit')
 
 
 
