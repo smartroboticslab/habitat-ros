@@ -17,6 +17,11 @@ from typing import Tuple
 
 
 
+_pose_topic = "/habitat/pose"
+_pose_msg_type = PoseStamped
+
+
+
 class Movement:
     _fb_step = 0.25 # metres, forward/backward movement step
     _lr_step = 0.25 # metres, left/right movement step
@@ -54,8 +59,8 @@ def parse_args() -> argparse.Namespace:
 
 
 
-def init_pose() -> PoseStamped:
-    return rospy.wait_for_message("/habitat/pose", PoseStamped)
+def init_pose() -> _pose_msg_type:
+    return rospy.wait_for_message(_pose_topic, _pose_msg_type)
 
 
 
@@ -144,7 +149,7 @@ def wait_for_key(window) -> Tuple[Movement, bool]:
 
 def print_waiting_for_pose(window) -> None:
     window.clear()
-    window.addstr(1, 0, 'Waiting for initial pose...')
+    window.addstr(1, 0, 'Waiting for initial pose of type {} on topic {}'.format(_pose_msg_type, _pose_topic))
     window.refresh()
 
 
