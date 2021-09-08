@@ -17,8 +17,13 @@ from typing import Tuple
 
 
 
-_pose_topic = "/habitat/pose"
-_pose_msg_type = PoseStamped
+_node_name = "habitat_ros_teleop"
+_pose_input_topic = "/habitat/pose"
+_pose_input_topic_type = PoseStamped
+_pose_output_topic = "/habitat/external_pose"
+_pose_output_topic_type = PoseStamped
+_path_output_topic = "/mav_sim/goal_path"
+_path_output_topic_type = Path
 
 
 
@@ -59,8 +64,8 @@ def parse_args() -> argparse.Namespace:
 
 
 
-def init_pose() -> _pose_msg_type:
-    return rospy.wait_for_message(_pose_topic, _pose_msg_type)
+def init_pose() -> _pose_input_topic_type:
+    return rospy.wait_for_message(_pose_input_topic, _pose_input_topic_type)
 
 
 
@@ -149,7 +154,7 @@ def wait_for_key(window) -> Tuple[Movement, bool]:
 
 def print_waiting_for_pose(window) -> None:
     window.clear()
-    window.addstr(1, 0, "Waiting for initial pose of type {} on topic {}".format(_pose_msg_type, _pose_topic))
+    window.addstr(1, 0, "Waiting for initial pose of type {} on topic {}".format(_pose_input_topic_type, _pose_input_topic))
     window.refresh()
 
 
@@ -180,11 +185,11 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 
 def main_manual(args: argparse.Namespace) -> None:
     # Initialize ROS
-    rospy.init_node("habitat_ros_teleop")
+    rospy.init_node(_node_name)
     if args.publish_path:
-        path_pub = rospy.Publisher("/mav_sim/goal_path", Path, queue_size=10)
+        path_pub = rospy.Publisher(_path_output_topic, _path_output_topic_type, queue_size=10)
     else:
-        pose_pub = rospy.Publisher("/habitat/external_pose", PoseStamped, queue_size=10)
+        pose_pub = rospy.Publisher(_pose_output_topic, _pose_output_topic_type, queue_size=10)
     # Initialize curses
     window = curses.initscr()
     try:
