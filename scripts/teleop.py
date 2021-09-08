@@ -178,8 +178,7 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 
 
 
-def main() -> None:
-    args = parse_args()
+def main(args: argparse.Namespace) -> None:
     # Initialize ROS
     rospy.init_node("habitat_ros_teleop")
     if args.publish_path:
@@ -208,8 +207,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    args = parse_args()
     try:
-        main()
+        main(args)
     finally:
         curses.endwin()
 
