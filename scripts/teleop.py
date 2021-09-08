@@ -51,10 +51,10 @@ class Movement:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
             description="Control the agent with the keyboard")
-    parser.add_argument('-p', '--publish-path', action='store_true',
-            help='Publish the goal pose as a nav_msgs::Path instead of a '
-            'geometry_msgs::PoseStamped. This is meant for use with the MAV '
-            'simulator.')
+    parser.add_argument("-p", "--publish-path", action="store_true",
+            help="Publish the goal pose as a nav_msgs::Path instead of a "
+            "geometry_msgs::PoseStamped. This is meant for use with the MAV "
+            "simulator.")
     return parser.parse_args()
 
 
@@ -149,19 +149,19 @@ def wait_for_key(window) -> Tuple[Movement, bool]:
 
 def print_waiting_for_pose(window) -> None:
     window.clear()
-    window.addstr(1, 0, 'Waiting for initial pose of type {} on topic {}'.format(_pose_msg_type, _pose_topic))
+    window.addstr(1, 0, "Waiting for initial pose of type {} on topic {}".format(_pose_msg_type, _pose_topic))
     window.refresh()
 
 
 
 def print_help(window) -> None:
-    window.addstr(0, 0, 'Position:')
-    window.addstr(2, 0, 'Orientation (w,x,y,z):')
-    window.addstr(5, 0, 'w/s       forwards/backwards')
-    window.addstr(6, 0, 'a/d       left/right')
-    window.addstr(7, 0, 'space/c   up/down')
-    window.addstr(8, 0, 'q/e       rotate left/right')
-    window.addstr(9, 0, 'Q         quit')
+    window.addstr(0, 0, "Position:")
+    window.addstr(2, 0, "Orientation (w,x,y,z):")
+    window.addstr(5, 0, "w/s       forwards/backwards")
+    window.addstr(6, 0, "a/d       left/right")
+    window.addstr(7, 0, "space/c   up/down")
+    window.addstr(8, 0, "q/e       rotate left/right")
+    window.addstr(9, 0, "Q         quit")
 
 
 
@@ -171,21 +171,21 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
             p.pose.orientation.y, p.pose.orientation.z]
     window.move(1, 0)
     window.clrtoeol()
-    window.addstr(1, 0, '  ' + ' '.join(['{: 8.3f}'.format(x) for x in position]))
+    window.addstr(1, 0, "  " + " ".join(["{: 8.3f}".format(x) for x in position]))
     window.move(3, 0)
     window.clrtoeol()
-    window.addstr(3, 0, '  ' + ' '.join(['{: 8.3f}'.format(x) for x in orientation]))
+    window.addstr(3, 0, "  " + " ".join(["{: 8.3f}".format(x) for x in orientation]))
 
 
 
 def main() -> None:
     args = parse_args()
     # Initialize ROS
-    rospy.init_node('habitat_ros_teleop')
+    rospy.init_node("habitat_ros_teleop")
     if args.publish_path:
-        path_pub = rospy.Publisher('/mav_sim/goal_path', Path, queue_size=10)
+        path_pub = rospy.Publisher("/mav_sim/goal_path", Path, queue_size=10)
     else:
-        pose_pub = rospy.Publisher('/habitat/external_pose', PoseStamped, queue_size=10)
+        pose_pub = rospy.Publisher("/habitat/external_pose", PoseStamped, queue_size=10)
     # Initialize curses
     window = curses.initscr()
     curses.noecho()
