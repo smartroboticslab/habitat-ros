@@ -55,17 +55,42 @@ class Movement:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-            description="Control the agent with the keyboard")
+            description="Control the agent with the keyboard or from a TSV file")
+    parser.add_argument("filename", metavar="TSV_FILE", nargs="?", default="",
+            help="Read the poses from a TSV file instead of manually moving "
+            "the MAV.")
     parser.add_argument("-p", "--publish-path", action="store_true",
             help="Publish the goal pose as a nav_msgs::Path instead of a "
             "geometry_msgs::PoseStamped. This is meant for use with the MAV "
             "simulator.")
+    parser.add_argument("-r", "--publish-rate", metavar="R", type=float, default=1.0,
+            help="The rate R in Hz at which poses are published when a TSV "
+            "file has been supplied.")
     return parser.parse_args()
 
 
 
 def init_pose() -> _pose_input_topic_type:
     return rospy.wait_for_message(_pose_input_topic, _pose_input_topic_type)
+
+
+
+def pose_from_str(p: PoseStamped, s: str) -> PoseStamped:
+    new_p = PoseStamped()
+    new_p.header.stamp = rospy.get_rostime()
+    new_p.header.frame_id = p.header.frame_id
+    e = s.split()
+    if (len(e) != 7):
+        rospy.logfatal("Invalid TSV line, expected 7 columns, got {}\n  {}".format(len(e), s))
+        raise KeyboardInterrupt
+    new_p.pose.position.x = float(e[0])
+    new_p.pose.position.y = float(e[1])
+    new_p.pose.position.z = float(e[2])
+    new_p.pose.orientation.x = float(e[3])
+    new_p.pose.orientation.y = float(e[4])
+    new_p.pose.orientation.z = float(e[5])
+    new_p.pose.orientation.w = float(e[6])
+    return new_p
 
 
 
@@ -214,7 +239,36 @@ def main_manual(args: argparse.Namespace) -> None:
 
 
 
+def main_tsv(args: argparse.Namespace) -> None:
+    # Initialize ROS
+    rospy.init_node(_node_name)
+    if args.publish_path:
+        path_pub = rospy.Publisher(_path_output_topic, _path_output_topic_type, queue_size=10)
+    else:
+        pose_pub = rospy.Publisher(_pose_output_topic, _pose_output_topic_type, queue_size=10)
+    # Wait for the initial pose so we know the frame_id and that it's time to
+    # start publishing
+    pose = init_pose()
+    with open(args.filename) as f:
+        r = rospy.Rate(args.publish_rate)
+        header = f.readline()
+        for line in f:
+            if rospy.is_shutdown():
+                break
+            new_pose = pose_from_str(pose, line)
+            if args.publish_path:
+                path_pub.publish(pose_to_path(pose, new_pose))
+            else:
+                pose_pub.publish(new_pose)
+            pose = new_pose
+            print(line, end="")
+            r.sleep()
+
+
 if __name__ == "__main__":
     args = parse_args()
-    main_manual(args)
+    if args.filename:
+        main_tsv(args)
+    else:
+        main_manual(args)
 
