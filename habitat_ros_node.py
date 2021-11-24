@@ -462,7 +462,7 @@ class HabitatROSNode:
             return
         # Transform the pose
         T_FB = msg_to_pose(pose.pose)
-        T_WB = T_WF.dot(T_FB)
+        T_WB = T_WF @ T_FB
         # Update the pose
         self.T_WB_mutex.acquire()
         self.T_WB = T_WB
@@ -578,13 +578,13 @@ class HabitatROSNode:
 
     def _T_HC_to_T_WB(self, T_HC: np.array) -> np.array:
         """Convert T_HC to T_WB."""
-        return self._T_WH.dot(T_HC).dot(self._T_CB)
+        return self._T_WH @ T_HC @ self._T_CB
 
 
 
     def _T_WB_to_T_HC(self, T_WB: np.array) -> np.array:
         """Convert T_WB to T_HC."""
-        return self._T_HW.dot(T_WB).dot(self._T_BC)
+        return self._T_HW @ T_WB @ self._T_BC
 
 
 
