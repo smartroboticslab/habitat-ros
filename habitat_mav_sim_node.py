@@ -23,10 +23,10 @@ Config = Dict[str, Any]
 
 
 
-def read_config(config: Config, ns: str) -> Config:
+def read_config(config: Config) -> Config:
     new_config = config.copy()
     for name, val in config.items():
-        new_config[name] = rospy.get_param("~" + ns + "/" + name, val)
+        new_config[name] = rospy.get_param("~habitat_mav_sim/" + name, val)
     return new_config
 
 def print_config(config: Config) -> None:
@@ -162,9 +162,9 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 
 class SimpleMAVSimNode:
     # Published topic names
-    _pose_topic = "/mav_sim/pose"
+    _pose_topic = "~pose"
     # Subscribed topic names
-    _goal_path_topic = "/mav_sim/goal_path"
+    _goal_path_topic = "~goal_path"
     _init_pose_topic = "/habitat/pose"
     _default_config = {
             "a_max": [1.0, 1.0, 0.5],
@@ -175,9 +175,9 @@ class SimpleMAVSimNode:
 
 
     def __init__(self) -> None:
-        rospy.init_node("habitat_ros_mav_sim")
+        rospy.init_node("habitat_mav_sim")
         # Read the configuration parameters
-        self._config = read_config(self._default_config, "habitat_ros_mav_sim")
+        self._config = read_config(self._default_config)
         rospy.loginfo("Simple MAV simulator parameters:")
         print_config(self._config)
         # Initialize the transform listener

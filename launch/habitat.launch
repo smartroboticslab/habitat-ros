@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!-- SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London -->
+<!-- SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou -->
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<launch>
+  <!-- Node arguments -->
+  <arg name="habitat_config" default="$(find habitat_ros)/config/habitat.yaml"/>
+
+  <!-- Habitat-Sim node -->
+  <node pkg="habitat_ros"
+      type="habitat_node.py"
+      name="habitat"
+      clear_params="true"
+      output="screen">
+    <rosparam command="load" file="$(arg habitat_config)"/>
+    <!-- Hide Habitat-Sim logs -->
+    <env name="GLOG_minloglevel" value="1"/>
+    <env name="MAGNUM_LOG" value="quiet"/>
+  </node>
+
+  <!-- Set the ROS log level in rosconsole.conf -->
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find habitat_ros)/config/rosconsole.conf"/>
+</launch>
+

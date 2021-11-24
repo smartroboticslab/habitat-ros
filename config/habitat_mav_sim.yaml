@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 # Simple MAV simulator settings
-habitat_ros_mav_sim:
+habitat_mav_sim:
     sim_freq: 60
     a_max: [1.0, 1.0, 0.5]
     w_max: [0.1, 0.1, 0.05]

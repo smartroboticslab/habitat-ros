@@ -17,12 +17,12 @@ from typing import Tuple
 
 
 
-_node_name = "habitat_ros_teleop"
+_node_name = "habitat_teleop"
 _pose_input_topic = "/habitat/pose"
 _pose_input_topic_type = PoseStamped
 _pose_output_topic = "/habitat/external_pose"
 _pose_output_topic_type = PoseStamped
-_path_output_topic = "/mav_sim/goal_path"
+_path_output_topic = "/habitat_mav_sim/goal_path"
 _path_output_topic_type = Path
 
 

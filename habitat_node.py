@@ -30,13 +30,13 @@ Sim = hs.Simulator
 
 
 
-def read_config(config: Config, ns: str) -> Config:
+def read_config(config: Config) -> Config:
     """Read the ROS parameters from the namespace into the configuration
     dictionary and return the result. Parameters that don't exist in the ROS
     namespace retain their initial values."""
     new_config = config.copy()
     for name, val in config.items():
-        new_config[name] = rospy.get_param("~" + ns + "/" + name, val)
+        new_config[name] = rospy.get_param("~habitat/" + name, val)
     return new_config
 
 def print_config(config: Config) -> None:
@@ -225,14 +225,14 @@ class HabitatROSNode:
     _bridge = CvBridge()
 
     # Published topic names
-    _rgb_topic_name = '/habitat/rgb/'
-    _depth_topic_name = '/habitat/depth/'
-    _sem_class_topic_name = '/habitat/semantic_class/'
-    _sem_instance_topic_name = '/habitat/semantic_instance/'
-    _habitat_pose_topic_name = '/habitat/pose'
+    _rgb_topic_name = '~rgb/'
+    _depth_topic_name = '~depth/'
+    _sem_class_topic_name = '~semantic_class/'
+    _sem_instance_topic_name = '~semantic_instance/'
+    _habitat_pose_topic_name = '~pose'
 
     # Subscribed topic names
-    _external_pose_topic_name = '/habitat/external_pose'
+    _external_pose_topic_name = '~external_pose'
 
     # Transforms between the habitat frame H (y-up) and the world frame W (z-up)
     _T_WH = np.identity(4)
@@ -265,7 +265,7 @@ class HabitatROSNode:
 
     def __init__(self):
         # Initialize the node, habitat-sim and publishers
-        rospy.init_node('habitat_ros')
+        rospy.init_node('habitat')
         self.config = self._read_node_config()
         self.sim = self._init_habitat(self.config)
         self.pub = self._init_publishers(self.config)
@@ -294,7 +294,7 @@ class HabitatROSNode:
     def _read_node_config(self) -> Config:
         """Read the node parameters, print them and return a dictionary."""
         # Read the parameters
-        config = read_config(self._default_config, "habitat_ros")
+        config = read_config(self._default_config)
         # Get an absolute path from the supplied scene file
         config['scene_file'] = os.path.expanduser(config['scene_file'])
         if not os.path.isabs(config['scene_file']):
