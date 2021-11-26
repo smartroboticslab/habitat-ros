@@ -68,7 +68,7 @@ at a constant rate.
 
 | Topic name                               | Type                          | Description |
 | :--------------------------------------- | :---------------------------- | :---------- |
-| `/habitat/pose`                          | `geometry_msgs::PoseStamped`  | The pose (T\_WB) where the images are rendered from. |
+| `/habitat/pose`                          | `geometry_msgs::PoseStamped`  | The pose (T\_HB) where the images are rendered from. |
 | `/habitat/depth/image_raw`               | `sensor_msgs::Image (32FC1)`  | The rendered depth image in metres. |
 | `/habitat/rgb/image_raw`                 | `sensor_msgs::Image (rgb8)`   | The rendered RGB image. |
 | `/habitat/semantic_class/image_raw`      | `sensor_msgs::Image (mono8)`  | The per-pixel semantic class IDs. Each class ID is in the range [0-41]. Published only if `enable_semantics` is `true`. |
@@ -84,7 +84,7 @@ immediately moved there.
 
 | Topic name               | Type                         | Description |
 | :----------------------- | :--------------------------- | :---------- |
-| `/habitat/external_pose` | `geometry_msgs::PoseStamped` | The pose (T\_WB) where the next images should be rendered from. |
+| `/habitat/external_pose` | `geometry_msgs::PoseStamped` | The pose (T\_HB) where the next images should be rendered from. |
 
 #### Settings
 
@@ -99,7 +99,7 @@ immediately moved there.
 | `habitat/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
 | `habitat/allowed_classes`     | `List`  | Only class IDs present in this list will be present in the output images. All other object classes will have a class and instance ID of 0. Leave empty to return all the available classes. Having a non-empty list significantly impacts performance so its suggested to only use this option for debugging. |
 | `habitat/scene_file`          | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
-| `habitat/initial_T_WB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
+| `habitat/initial_T_HB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
 | `habitat/world_frame_id`      | `str`   | The ID of the World (W) frame. Poses received in `/habitat/external_pose` are transformed to this frame. |
 | `habitat/visualize_semantics` | `bool`  | Generate and publish visualizations of the semantic class and instance IDs. Useful for debugging. |
 
@@ -109,9 +109,9 @@ immediately moved there.
 
 ### Coordinate Frames
 
-- The World (W) frame is z-up and its origin and x-axis direction depend on the
-  scene that is being used.
-- The Body (B) frame is the standard ROS x-forward, z-up frame.
+- The Habitat frame (H) is z-up and its origin and x-axis direction depend on
+  the scene that is being used.
+- The Body frame (B) is the standard ROS x-forward, z-up frame.
 
 ### Performance
 

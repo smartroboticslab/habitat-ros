@@ -234,11 +234,12 @@ class HabitatROSNode:
     # Subscribed topic names
     _external_pose_topic_name = '~external_pose'
 
-    # Transforms between the habitat frame H (y-up) and the world frame W (z-up)
-    _T_WH = np.identity(4)
-    _T_WH[0:3, 0:3] = quaternion.as_rotation_matrix(hs.utils.common.quat_from_two_vectors(
+    # Transforms between the internal habitat frame I (y-up) and the exported
+    # habitat frame H (z-up)
+    _T_HI = np.identity(4)
+    _T_HI[0:3, 0:3] = quaternion.as_rotation_matrix(hs.utils.common.quat_from_two_vectors(
             hs.geo.GRAVITY, np.array([0.0, 0.0, -1.0])))
-    _T_HW = np.linalg.inv(_T_WH)
+    _T_IH = np.linalg.inv(_T_HI)
 
     # Transforms between the habitat camera frame C (-z-forward, y-up) and the
     # ROS body frame B (x-forward, z-up)
@@ -257,7 +258,7 @@ class HabitatROSNode:
             'enable_semantics': False,
             'allowed_classes': [],
             'scene_file': '',
-            'initial_T_WB': [],
+            'initial_T_HB': [],
             'world_frame_id': 'map',
             'visualize_semantics': False}
 
@@ -270,7 +271,7 @@ class HabitatROSNode:
         self.sim = self._init_habitat(self.config)
         self.pub = self._init_publishers(self.config)
         # Initialize the pose mutex
-        self.T_WB_mutex = threading.Lock()
+        self.T_HB_mutex = threading.Lock()
         # Initialize the transform listener
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -308,11 +309,11 @@ class HabitatROSNode:
         elif not os.path.isfile(config['scene_file']):
             rospy.logfatal('Scene file ' + config['scene_file'] + ' does not exist')
             raise rospy.ROSException
-        # Create the initial T_WB matrix
-        T = list_to_pose(config['initial_T_WB'])
-        if T is None and config['initial_T_WB']:
-            rospy.logerr('Invalid initial T_WB. Expected list of 3, 4, 7 or 16 elements')
-        config['initial_T_WB'] = T
+        # Create the initial T_HB matrix
+        T = list_to_pose(config['initial_T_HB'])
+        if T is None and config['initial_T_HB']:
+            rospy.logerr('Invalid initial T_HB. Expected list of 3, 4, 7 or 16 elements')
+        config['initial_T_HB'] = T
         rospy.loginfo('Habitat node parameters:')
         print_config(config)
         return config
@@ -344,19 +345,19 @@ class HabitatROSNode:
             rospy.logwarn('The scene contains no semantics')
         # Get or set the initial agent pose
         agent = sim.get_agent(0)
-        if config['initial_T_WB'] is None:
-            t_HC = agent.get_state().position
-            q_HC = agent.get_state().rotation
-            T_HC = combine_pose(t_HC, q_HC)
-            self.T_WB = self._T_HC_to_T_WB(T_HC)
+        if config['initial_T_HB'] is None:
+            t_IC = agent.get_state().position
+            q_IC = agent.get_state().rotation
+            T_IC = combine_pose(t_IC, q_IC)
+            self.T_HB = self._T_IC_to_T_HB(T_IC)
         else:
-            self.T_WB = config['initial_T_WB']
-            t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
-            agent_state = hs.agent.AgentState(t_HC, q_HC)
+            self.T_HB = config['initial_T_HB']
+            t_IC, q_IC = split_pose(self._T_HB_to_T_IC(self.T_HB))
+            agent_state = hs.agent.AgentState(t_IC, q_IC)
             agent.set_state(agent_state)
-        t_WB, q_WB = split_pose(self.T_WB)
-        rospy.loginfo('Habitat initial t_WB:           ' + str(t_WB))
-        rospy.loginfo('Habitat initial q_WB (w,x,y,z): ' + str(q_WB))
+        t_HB, q_HB = split_pose(self.T_HB)
+        rospy.loginfo('Habitat initial t_HB:           ' + str(t_HB))
+        rospy.loginfo('Habitat initial q_HB (w,x,y,z): ' + str(q_HB))
         return sim
 
 
@@ -454,19 +455,19 @@ class HabitatROSNode:
         pose."""
         # Find the required transform from some frame F to the world frame W as
         # specified in self.config['world_frame_id']
-        T_WF = find_tf(self.tf_buffer, pose.header.frame_id, self.config['world_frame_id'])
-        if T_WF is None:
+        T_HF = find_tf(self.tf_buffer, pose.header.frame_id, self.config['world_frame_id'])
+        if T_HF is None:
             rospy.logerr_once('Could not find transform from frame '
                     + pose.header.frame_id + ' to frame '
                     + self.config['world_frame_id'])
             return
         # Transform the pose
         T_FB = msg_to_pose(pose.pose)
-        T_WB = T_WF @ T_FB
+        T_HB = T_HF @ T_FB
         # Update the pose
-        self.T_WB_mutex.acquire()
-        self.T_WB = T_WB
-        self.T_WB_mutex.release()
+        self.T_HB_mutex.acquire()
+        self.T_HB = T_HB
+        self.T_HB_mutex.release()
 
 
 
@@ -487,8 +488,8 @@ class HabitatROSNode:
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
         """Convert the agent pose from the observation to a ROS PoseStamped
         message."""
-        position = observation['T_WB'][0:3, 3]
-        orientation = quaternion.from_rotation_matrix(observation['T_WB'][0:3, 0:3])
+        position = observation['T_HB'][0:3, 3]
+        orientation = quaternion.from_rotation_matrix(observation['T_HB'][0:3, 0:3])
         p = PoseStamped()
         p.header.frame_id = self.config['world_frame_id']
         # Return the current ROS time since the habitat simulator does not provide
@@ -576,25 +577,25 @@ class HabitatROSNode:
 
 
 
-    def _T_HC_to_T_WB(self, T_HC: np.array) -> np.array:
-        """Convert T_HC to T_WB."""
-        return self._T_WH @ T_HC @ self._T_CB
+    def _T_IC_to_T_HB(self, T_IC: np.array) -> np.array:
+        """Convert T_IC to T_HB."""
+        return self._T_HI @ T_IC @ self._T_CB
 
 
 
-    def _T_WB_to_T_HC(self, T_WB: np.array) -> np.array:
-        """Convert T_WB to T_HC."""
-        return self._T_HW @ T_WB @ self._T_BC
+    def _T_HB_to_T_IC(self, T_HB: np.array) -> np.array:
+        """Convert T_HB to T_IC."""
+        return self._T_IH @ T_HB @ self._T_BC
 
 
 
     def _teleport(self) -> None:
-        """Move the habitat sensor to the pose contained in self.T_WB."""
-        self.T_WB_mutex.acquire()
-        t_HC, q_HC = split_pose(self._T_WB_to_T_HC(self.T_WB))
-        self.T_WB_mutex.release()
+        """Move the habitat sensor to the pose contained in self.T_HB."""
+        self.T_HB_mutex.acquire()
+        t_IC, q_IC = split_pose(self._T_HB_to_T_IC(self.T_HB))
+        self.T_HB_mutex.release()
         agent = self.sim.get_agent(0)
-        agent_state = hs.agent.AgentState(t_HC, q_HC)
+        agent_state = hs.agent.AgentState(t_IC, q_IC)
         agent.set_state(agent_state)
 
 
@@ -613,12 +614,12 @@ class HabitatROSNode:
             observation['sem_classes'] = np.array(
                     [config['instance_to_class'][x] for x in observation['sem_instances']],
                     dtype=np.uint8)
-        # Get the camera ground truth pose (T_HC) in the habitat frame from the
+        # Get the camera ground truth pose (T_IC) in the habitat frame from the
         # position and orientation
-        t_HC = sim.get_agent(0).get_state().position
-        q_HC = sim.get_agent(0).get_state().rotation
-        T_HC = combine_pose(t_HC, q_HC)
-        observation['T_WB'] = self._T_HC_to_T_WB(T_HC)
+        t_IC = sim.get_agent(0).get_state().position
+        q_IC = sim.get_agent(0).get_state().rotation
+        T_IC = combine_pose(t_IC, q_IC)
+        observation['T_HB'] = self._T_IC_to_T_HB(T_IC)
         return observation
 
 
