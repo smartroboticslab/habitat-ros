@@ -61,14 +61,26 @@ python3 download_mp.py --task habitat -o /path/to/download/
 This is the main node and its respective launch file is
 `launch/habitat.launch`.
 
+#### Coordinate Frames
+
+- The Habitat frame (H) is z-up and its origin and x-axis direction depend on
+  the scene that is being used.
+- The Body frame (B) is the standard ROS x-forward, z-up frame.
+- The Pose frame (P) is the frame at which ground truth poses are being
+  published. Its frame ID can be set using `habitat/pose_frame_id`.
+- The External pose frame (E) is the frame at which external poses are being
+  received. A transformation from this frame to the Habitat frame (frame ID
+  `"habitat"`) will be searched for using
+  [`tf2_ros`](http://wiki.ros.org/tf2_ros).
+
 #### Published topics
 
 This node publishes the ground truth pose, RGB, depth and optionally semantics
-at a constant rate.
+at a constant rate configurable from `habitat/fps`.
 
 | Topic name                               | Type                          | Description |
 | :--------------------------------------- | :---------------------------- | :---------- |
-| `/habitat/pose`                          | `geometry_msgs::PoseStamped`  | The pose (T\_HB) where the images are rendered from. |
+| `/habitat/pose`                          | `geometry_msgs::PoseStamped`  | The pose (T\_PB) where the images are rendered from. |
 | `/habitat/depth/image_raw`               | `sensor_msgs::Image (32FC1)`  | The rendered depth image in metres. |
 | `/habitat/rgb/image_raw`                 | `sensor_msgs::Image (rgb8)`   | The rendered RGB image. |
 | `/habitat/semantic_class/image_raw`      | `sensor_msgs::Image (mono8)`  | The per-pixel semantic class IDs. Each class ID is in the range [0-41]. Published only if `enable_semantics` is `true`. |
@@ -84,7 +96,7 @@ immediately moved there.
 
 | Topic name               | Type                         | Description |
 | :----------------------- | :--------------------------- | :---------- |
-| `/habitat/external_pose` | `geometry_msgs::PoseStamped` | The pose (T\_HB) where the next images should be rendered from. |
+| `/habitat/external_pose` | `geometry_msgs::PoseStamped` | The pose (T\_EB) where the next images should be rendered from. |
 
 #### Settings
 
@@ -94,26 +106,18 @@ immediately moved there.
 | `habitat/height`              | `int`   | The height of all rendered images in pixels. |
 | `habitat/near_plane`          | `float` | The near plane of the depth sensor in metres. No depth values smaller than `near_plane` will be produced. |
 | `habitat/far_plane`           | `float` | The far plane of the depth sensor in metres. No depth values greater than `far_plane` will be produced. |
-| `habitat/fx`                  | `float` | The focal lendth of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
+| `habitat/fx`                  | `float` | The focal length of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
 | `habitat/fps`                 | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
 | `habitat/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
 | `habitat/allowed_classes`     | `List`  | Only class IDs present in this list will be present in the output images. All other object classes will have a class and instance ID of 0. Leave empty to return all the available classes. Having a non-empty list significantly impacts performance so its suggested to only use this option for debugging. |
 | `habitat/scene_file`          | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
 | `habitat/initial_T_HB`        | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |
-| `habitat/world_frame_id`      | `str`   | The ID of the World (W) frame. Poses received in `/habitat/external_pose` are transformed to this frame. |
+| `habitat/pose_frame_id`       | `str`   | The ID of the frame for poses published in `/habitat/pose`. |
 | `habitat/visualize_semantics` | `bool`  | Generate and publish visualizations of the semantic class and instance IDs. Useful for debugging. |
 
 
 
-## Notes
-
-### Coordinate Frames
-
-- The Habitat frame (H) is z-up and its origin and x-axis direction depend on
-  the scene that is being used.
-- The Body frame (B) is the standard ROS x-forward, z-up frame.
-
-### Performance
+## Performance
 
 - Enabling the semantic class and instance publishing will reduce performance so
   it is advised to keep them disabled if semantics are not needed.

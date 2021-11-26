@@ -124,6 +124,8 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
     try:
         return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        rospy.logerr('Could not find transform from frame "' + from_frame
+                + '" to frame "' + to_frame + '"')
         return None
 
 
@@ -259,7 +261,7 @@ class HabitatROSNode:
             'allowed_classes': [],
             'scene_file': '',
             'initial_T_HB': [],
-            'world_frame_id': 'map',
+            'pose_frame_id': 'habitat',
             'visualize_semantics': False}
 
 
@@ -453,17 +455,13 @@ class HabitatROSNode:
     def _pose_callback(self, pose: PoseStamped) -> None:
         """Callback for receiving external pose messages. It updates the agent
         pose."""
-        # Find the required transform from some frame F to the world frame W as
-        # specified in self.config['world_frame_id']
-        T_HF = find_tf(self.tf_buffer, pose.header.frame_id, self.config['world_frame_id'])
-        if T_HF is None:
-            rospy.logerr_once('Could not find transform from frame '
-                    + pose.header.frame_id + ' to frame '
-                    + self.config['world_frame_id'])
+        # Find the transform from the pose frame F to the habitat frame H
+        T_HE = find_tf(self.tf_buffer, pose.header.frame_id, "habitat")
+        if T_HE is None:
             return
         # Transform the pose
-        T_FB = msg_to_pose(pose.pose)
-        T_HB = T_HF @ T_FB
+        T_EB = msg_to_pose(pose.pose)
+        T_HB = T_HE @ T_EB
         # Update the pose
         self.T_HB_mutex.acquire()
         self.T_HB = T_HB
@@ -488,20 +486,20 @@ class HabitatROSNode:
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
         """Convert the agent pose from the observation to a ROS PoseStamped
         message."""
-        position = observation['T_HB'][0:3, 3]
-        orientation = quaternion.from_rotation_matrix(observation['T_HB'][0:3, 0:3])
+        T_PH = find_tf(self.tf_buffer, "habitat", self.config['pose_frame_id'])
+        if T_PH is None:
+            return
+        t_HB, q_HB = split_pose(T_PH @ observation['T_HB'])
         p = PoseStamped()
-        p.header.frame_id = self.config['world_frame_id']
-        # Return the current ROS time since the habitat simulator does not provide
-        # one. sim.get_world_time() always returns 0
+        p.header.frame_id = self.config['pose_frame_id']
         p.header.stamp = observation['timestamp']
-        p.pose.position.x = position[0]
-        p.pose.position.y = position[1]
-        p.pose.position.z = position[2]
-        p.pose.orientation.x = orientation.x
-        p.pose.orientation.y = orientation.y
-        p.pose.orientation.z = orientation.z
-        p.pose.orientation.w = orientation.w
+        p.pose.position.x = t_HB[0]
+        p.pose.position.y = t_HB[1]
+        p.pose.position.z = t_HB[2]
+        p.pose.orientation.x = q_HB.x
+        p.pose.orientation.y = q_HB.y
+        p.pose.orientation.z = q_HB.z
+        p.pose.orientation.w = q_HB.w
         return p
 
 
@@ -603,6 +601,8 @@ class HabitatROSNode:
     def _render(self, sim: Sim, config: Config) -> Observation:
         """Return the sensor observations and ground truth pose"""
         observation = sim.get_sensor_observations()
+        # Return the current ROS time since the habitat simulator does not
+        # provide one. sim.get_world_time() always returns 0
         observation['timestamp'] = rospy.get_rostime()
         # Change from RGBA to RGB
         observation['rgb'] = observation['rgb'][..., 0:3]

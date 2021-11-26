@@ -170,7 +170,7 @@ class SimpleMAVSimNode:
             "a_max": [1.0, 1.0, 0.5],
             "w_max": [0.1, 0.1, 0.05],
             "sim_freq": 60,
-            "world_frame_id": "map"}
+            "world_frame_id": "habitat"}
 
 
 

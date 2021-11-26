@@ -7,5 +7,5 @@ habitat_mav_sim:
     sim_freq: 60
     a_max: [1.0, 1.0, 0.5]
     w_max: [0.1, 0.1, 0.05]
-    world_frame_id: "map"
+    world_frame_id: "habitat"
 
