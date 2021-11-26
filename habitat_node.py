@@ -276,7 +276,7 @@ class HabitatROSNode:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         # Setup the external pose subscriber
         rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
-                self._pose_callback)
+                self._pose_callback, queue_size=1)
         rospy.loginfo('Habitat node ready')
         # Main loop
         if self.config['fps'] > 0:
