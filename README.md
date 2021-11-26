@@ -106,7 +106,7 @@ immediately moved there.
 | `habitat/height`              | `int`   | The height of all rendered images in pixels. |
 | `habitat/near_plane`          | `float` | The near plane of the depth sensor in metres. No depth values smaller than `near_plane` will be produced. |
 | `habitat/far_plane`           | `float` | The far plane of the depth sensor in metres. No depth values greater than `far_plane` will be produced. |
-| `habitat/fx`                  | `float` | The focal length of the sensors in pixels. fy will be the same since Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
+| `habitat/f`                   | `float` | The focal length of the sensors in pixels. Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
 | `habitat/fps`                 | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
 | `habitat/enable_semantics`    | `bool`  | Enable publishing of the semantic class and instance IDs. |
 | `habitat/allowed_classes`     | `List`  | Only class IDs present in this list will be present in the output images. All other object classes will have a class and instance ID of 0. Leave empty to return all the available classes. Having a non-empty list significantly impacts performance so its suggested to only use this option for debugging. |

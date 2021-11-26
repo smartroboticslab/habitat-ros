@@ -9,7 +9,7 @@ habitat:
     height: 480
     near_plane: 0.1
     far_plane: 20.0
-    fx: 525.0
+    f: 525.0
     fps: 30
     enable_semantics: false
     allowed_classes: []

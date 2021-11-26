@@ -107,15 +107,15 @@ def list_to_pose(l: List) -> Union[np.array, None]:
 
 
 
-def hfov_to_fx(hfov: float, width: int) -> float:
+def hfov_to_f(hfov: float, width: int) -> float:
     """Convert horizontal field of view in degrees to focal length in pixels.
     https://github.com/facebookresearch/habitat-sim/issues/402"""
     return 1.0 / (2.0 / float(width) * math.tan(math.radians(hfov) / 2.0))
 
-def fx_to_hfov(fx: float, width: int) -> float:
+def f_to_hfov(f: float, width: int) -> float:
     """Convert focal length in pixels to horizontal field of view in degrees.
     https://github.com/facebookresearch/habitat-sim/issues/402"""
-    return math.degrees(2.0 * math.atan(float(width) / (2.0 * fx)))
+    return math.degrees(2.0 * math.atan(float(width) / (2.0 * f)))
 
 
 
@@ -255,7 +255,7 @@ class HabitatROSNode:
             'height': 480,
             'near_plane': 0.1,
             'far_plane': 10.0,
-            'fx': 525.0,
+            'f': 525.0,
             'fps': 30,
             'enable_semantics': False,
             'allowed_classes': [],
@@ -333,12 +333,12 @@ class HabitatROSNode:
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
         hfov = float(agent_config.sensor_specifications[0].parameters['hfov'])
-        fx = hfov_to_fx(hfov, config['width'])
+        f = hfov_to_f(hfov, config['width'])
         cx = config['width'] / 2.0 - 0.5
         cy = config['height'] / 2.0 - 0.5
-        config['K'] = np.array([[fx, 0.0, cx], [0.0, fx, cy], [0.0, 0.0, 1.0]],
+        config['K'] = np.array([[f, 0.0, cx], [0.0, f, cy], [0.0, 0.0, 1.0]],
                 dtype=np.float64)
-        config['P'] = np.array([[fx, 0.0, cx, 0.0], [0.0, fx, cy, 0.0],
+        config['P'] = np.array([[f, 0.0, cx, 0.0], [0.0, f, cy, 0.0],
             [0.0, 0.0, 1.0, 0.0]],
                 dtype=np.float64)
         # Setup the instance/class conversion map
@@ -372,7 +372,7 @@ class HabitatROSNode:
         rgb_sensor_spec.resolution = [config['height'], config['width']]
         rgb_sensor_spec.parameters['near'] = str(0.00001)
         rgb_sensor_spec.parameters['far'] = str(1000)
-        rgb_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
+        rgb_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
         return rgb_sensor_spec
 
 
@@ -385,7 +385,7 @@ class HabitatROSNode:
         depth_sensor_spec.resolution = [config['height'], config['width']]
         depth_sensor_spec.parameters['near'] = str(config['near_plane'])
         depth_sensor_spec.parameters['far'] = str(config['far_plane'])
-        depth_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
+        depth_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
         return depth_sensor_spec
 
 
@@ -398,7 +398,7 @@ class HabitatROSNode:
         semantic_sensor_spec.resolution = [config['height'], config['width']]
         semantic_sensor_spec.parameters['near'] = str(0.00001)
         semantic_sensor_spec.parameters['far'] = str(1000)
-        semantic_sensor_spec.parameters['hfov'] = str(fx_to_hfov(config['fx'], config['width']))
+        semantic_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
         return semantic_sensor_spec
 
 
