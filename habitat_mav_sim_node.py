@@ -194,7 +194,7 @@ class SimpleMAVSimNode:
         T_FB_msg = rospy.wait_for_message(self._init_pose_topic, PoseStamped)
         T_WF = find_tf(self.tf_buffer, T_FB_msg.header.frame_id, self._config["world_frame_id"])
         T_FB = msg_to_pose(T_FB_msg.pose)
-        self._T_WB = T_WF.dot(T_FB)
+        self._T_WB = T_WF @ T_FB
         self._start_T_WB = self._T_WB
         # Setup publishers and subscribers
         self._pub = rospy.Publisher(self._pose_topic, PoseStamped, queue_size=10)
@@ -220,14 +220,14 @@ class SimpleMAVSimNode:
         self._pose_mutex.acquire()
         # Set the current and start poses to the first path vertex
         first_T_FB = msg_to_pose(path.poses[0].pose)
-        self._T_WB = T_WF.dot(first_T_FB)
+        self._T_WB = T_WF @ first_T_FB
         self._start_T_WB = self._T_WB
         self._start_T_WB_time = rospy.get_time()
         # Clear the queue of any previous paths and add the goal poses
         self._goal_T_WBs.clear()
         for i in range(1, len(path.poses)):
             T_FB = msg_to_pose(path.poses[i].pose)
-            self._goal_T_WBs.append(T_WF.dot(T_FB))
+            self._goal_T_WBs.append(T_WF @ T_FB)
         self._pose_mutex.release()
 
 
