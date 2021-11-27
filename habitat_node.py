@@ -148,48 +148,48 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 class HabitatROSNode:
     # Dictionary from Matterport3D class IDs to class names
     class_id_to_name = {
-        0: 'void',
-        1: 'wall',
-        2: 'floor',
-        3: 'chair',
-        4: 'door',
-        5: 'table',
-        6: 'picture',
-        7: 'cabinet',
-        8: 'cushion',
-        9: 'window',
-        10: 'sofa',
-        11: 'bed',
-        12: 'curtain',
-        13: 'chest_of_drawers',
-        14: 'plant',
-        15: 'sink',
-        16: 'stairs',
-        17: 'ceiling',
-        18: 'toilet',
-        19: 'stool',
-        20: 'towel',
-        21: 'mirror',
-        22: 'tv_monitor',
-        23: 'shower',
-        24: 'column',
-        25: 'bathtub',
-        26: 'counter',
-        27: 'fireplace',
-        28: 'lighting',
-        29: 'beam',
-        30: 'railing',
-        31: 'shelving',
-        32: 'blinds',
-        33: 'gym_equipment',
-        34: 'seating',
-        35: 'board_panel',
-        36: 'furniture',
-        37: 'appliances',
-        38: 'clothes',
-        39: 'objects',
-        40: 'misc',
-        41: 'unlabeled',
+        0: "void",
+        1: "wall",
+        2: "floor",
+        3: "chair",
+        4: "door",
+        5: "table",
+        6: "picture",
+        7: "cabinet",
+        8: "cushion",
+        9: "window",
+        10: "sofa",
+        11: "bed",
+        12: "curtain",
+        13: "chest_of_drawers",
+        14: "plant",
+        15: "sink",
+        16: "stairs",
+        17: "ceiling",
+        18: "toilet",
+        19: "stool",
+        20: "towel",
+        21: "mirror",
+        22: "tv_monitor",
+        23: "shower",
+        24: "column",
+        25: "bathtub",
+        26: "counter",
+        27: "fireplace",
+        28: "lighting",
+        29: "beam",
+        30: "railing",
+        31: "shelving",
+        32: "blinds",
+        33: "gym_equipment",
+        34: "seating",
+        35: "board_panel",
+        36: "furniture",
+        37: "appliances",
+        38: "clothes",
+        39: "objects",
+        40: "misc",
+        41: "unlabeled",
     }
 
     # Matterport3D class RGB colors
@@ -242,14 +242,14 @@ class HabitatROSNode:
     _bridge = CvBridge()
 
     # Published topic names
-    _rgb_topic_name = '~rgb/'
-    _depth_topic_name = '~depth/'
-    _sem_class_topic_name = '~semantic_class/'
-    _sem_instance_topic_name = '~semantic_instance/'
-    _habitat_pose_topic_name = '~pose'
+    _rgb_topic_name = "~rgb/"
+    _depth_topic_name = "~depth/"
+    _sem_class_topic_name = "~semantic_class/"
+    _sem_instance_topic_name = "~semantic_instance/"
+    _habitat_pose_topic_name = "~pose"
 
     # Subscribed topic names
-    _external_pose_topic_name = '~external_pose'
+    _external_pose_topic_name = "~external_pose"
 
     # Transforms between the internal habitat frame I (y-up) and the exported
     # habitat frame H (z-up)
@@ -266,25 +266,25 @@ class HabitatROSNode:
 
     # The default node options
     _default_config = {
-            'width': 640,
-            'height': 480,
-            'near_plane': 0.1,
-            'far_plane': 10.0,
-            'f': 525.0,
-            'fps': 30,
-            'enable_semantics': False,
-            'allowed_classes': [],
-            'scene_file': '',
-            'initial_T_HB': [],
-            'pose_frame_id': 'habitat',
-            'pose_frame_at_initial_T_HB': False,
-            'visualize_semantics': False}
+            "width": 640,
+            "height": 480,
+            "near_plane": 0.1,
+            "far_plane": 10.0,
+            "f": 525.0,
+            "fps": 30,
+            "enable_semantics": False,
+            "allowed_classes": [],
+            "scene_file": "",
+            "initial_T_HB": [],
+            "pose_frame_id": "habitat",
+            "pose_frame_at_initial_T_HB": False,
+            "visualize_semantics": False}
 
 
 
     def __init__(self):
         # Initialize the node, habitat-sim and publishers
-        rospy.init_node('habitat')
+        rospy.init_node("habitat")
         self.config = self._read_node_config()
         self.sim = self._init_habitat(self.config)
         self.pub = self._init_publishers(self.config)
@@ -295,9 +295,9 @@ class HabitatROSNode:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         # Publish the T_HP transform so that the P frame coincides with the
         # initial pose
-        if self.config['pose_frame_at_initial_T_HB'] and self.config['pose_frame_id'] != "habitat":
+        if self.config["pose_frame_at_initial_T_HB"] and self.config["pose_frame_id"] != "habitat":
             T_HP = self.T_HB
-            T_HP_msg = transform_to_msg(T_HP, "habitat", self.config['pose_frame_id'])
+            T_HP_msg = transform_to_msg(T_HP, "habitat", self.config["pose_frame_id"])
             self.tf_static_broadcaster = tf2_ros.StaticTransformBroadcaster()
             self.tf_static_broadcaster.sendTransform(T_HP_msg)
             # Wait for the listener to pick up the transform
@@ -305,16 +305,16 @@ class HabitatROSNode:
         # Setup the external pose subscriber
         rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
                 self._pose_callback, queue_size=1)
-        rospy.loginfo('Habitat node ready')
+        rospy.loginfo("Habitat node ready")
         # Main loop
-        if self.config['fps'] > 0:
-            rate = rospy.Rate(self.config['fps'])
+        if self.config["fps"] > 0:
+            rate = rospy.Rate(self.config["fps"])
         while not rospy.is_shutdown():
             # Move, observe and publish
             self._teleport()
             observation = self._render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
-            if self.config['fps'] > 0:
+            if self.config["fps"] > 0:
                 rate.sleep()
 
 
@@ -324,24 +324,24 @@ class HabitatROSNode:
         # Read the parameters
         config = read_config(self._default_config)
         # Get an absolute path from the supplied scene file
-        config['scene_file'] = os.path.expanduser(config['scene_file'])
-        if not os.path.isabs(config['scene_file']):
+        config["scene_file"] = os.path.expanduser(config["scene_file"])
+        if not os.path.isabs(config["scene_file"]):
             # The scene file path is relative, assuming relative to the ROS package
-            package_path = rospkg.RosPack().get_path('habitat_ros') + '/'
-            config['scene_file'] = package_path + config['scene_file']
+            package_path = rospkg.RosPack().get_path("habitat_ros") + "/"
+            config["scene_file"] = package_path + config["scene_file"]
         # Ensure a valid scene file was supplied
-        if not config['scene_file']:
-            rospy.logfatal('No scene file supplied')
+        if not config["scene_file"]:
+            rospy.logfatal("No scene file supplied")
             raise rospy.ROSException
-        elif not os.path.isfile(config['scene_file']):
-            rospy.logfatal('Scene file ' + config['scene_file'] + ' does not exist')
+        elif not os.path.isfile(config["scene_file"]):
+            rospy.logfatal("Scene file " + config["scene_file"] + " does not exist")
             raise rospy.ROSException
         # Create the initial T_HB matrix
-        T = list_to_pose(config['initial_T_HB'])
-        if T is None and config['initial_T_HB']:
-            rospy.logerr('Invalid initial T_HB. Expected list of 3, 4, 7 or 16 elements')
-        config['initial_T_HB'] = T
-        rospy.loginfo('Habitat node parameters:')
+        T = list_to_pose(config["initial_T_HB"])
+        if T is None and config["initial_T_HB"]:
+            rospy.logerr("Invalid initial T_HB. Expected list of 3, 4, 7 or 16 elements")
+        config["initial_T_HB"] = T
+        rospy.loginfo("Habitat node parameters:")
         print_config(config)
         return config
 
@@ -351,40 +351,40 @@ class HabitatROSNode:
         """Initialize the Habitat simulator, create the sensors and load the
         scene file."""
         backend_config = hs.SimulatorConfiguration()
-        backend_config.scene.id = (config['scene_file'])
+        backend_config.scene.id = (config["scene_file"])
         agent_config = hs.AgentConfiguration()
         agent_config.sensor_specifications = [self._rgb_sensor_config(config),
                 self._depth_sensor_config(config), self._semantic_sensor_config(config)]
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
-        hfov = float(agent_config.sensor_specifications[0].parameters['hfov'])
-        f = hfov_to_f(hfov, config['width'])
-        cx = config['width'] / 2.0 - 0.5
-        cy = config['height'] / 2.0 - 0.5
-        config['K'] = np.array([[f, 0.0, cx], [0.0, f, cy], [0.0, 0.0, 1.0]],
+        hfov = float(agent_config.sensor_specifications[0].parameters["hfov"])
+        f = hfov_to_f(hfov, config["width"])
+        cx = config["width"] / 2.0 - 0.5
+        cy = config["height"] / 2.0 - 0.5
+        config["K"] = np.array([[f, 0.0, cx], [0.0, f, cy], [0.0, 0.0, 1.0]],
                 dtype=np.float64)
-        config['P'] = np.array([[f, 0.0, cx, 0.0], [0.0, f, cy, 0.0],
+        config["P"] = np.array([[f, 0.0, cx, 0.0], [0.0, f, cy, 0.0],
             [0.0, 0.0, 1.0, 0.0]],
                 dtype=np.float64)
         # Setup the instance/class conversion map
-        config['instance_to_class'] = self._generate_instance_to_class_map(sim.semantic_scene.objects)
-        if config['enable_semantics'] and config['instance_to_class'].size == 0:
-            rospy.logwarn('The scene contains no semantics')
+        config["instance_to_class"] = self._generate_instance_to_class_map(sim.semantic_scene.objects)
+        if config["enable_semantics"] and config["instance_to_class"].size == 0:
+            rospy.logwarn("The scene contains no semantics")
         # Get or set the initial agent pose
         agent = sim.get_agent(0)
-        if config['initial_T_HB'] is None:
+        if config["initial_T_HB"] is None:
             t_IC = agent.get_state().position
             q_IC = agent.get_state().rotation
             T_IC = combine_pose(t_IC, q_IC)
             self.T_HB = self._T_IC_to_T_HB(T_IC)
         else:
-            self.T_HB = config['initial_T_HB']
+            self.T_HB = config["initial_T_HB"]
             t_IC, q_IC = split_pose(self._T_HB_to_T_IC(self.T_HB))
             agent_state = hs.agent.AgentState(t_IC, q_IC)
             agent.set_state(agent_state)
         t_HB, q_HB = split_pose(self.T_HB)
-        rospy.loginfo('Habitat initial t_HB:           ' + str(t_HB))
-        rospy.loginfo('Habitat initial q_HB (w,x,y,z): ' + str(q_HB))
+        rospy.loginfo("Habitat initial t_HB:           " + str(t_HB))
+        rospy.loginfo("Habitat initial q_HB (w,x,y,z): " + str(q_HB))
         return sim
 
 
@@ -392,12 +392,12 @@ class HabitatROSNode:
     def _rgb_sensor_config(self, config: Config) -> hs.SensorSpec:
         """Return the configuration for a Habitat color sensor."""
         rgb_sensor_spec = hs.SensorSpec()
-        rgb_sensor_spec.uuid = 'rgb'
+        rgb_sensor_spec.uuid = "rgb"
         rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
-        rgb_sensor_spec.resolution = [config['height'], config['width']]
-        rgb_sensor_spec.parameters['near'] = str(0.00001)
-        rgb_sensor_spec.parameters['far'] = str(1000)
-        rgb_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
+        rgb_sensor_spec.resolution = [config["height"], config["width"]]
+        rgb_sensor_spec.parameters["near"] = str(0.00001)
+        rgb_sensor_spec.parameters["far"] = str(1000)
+        rgb_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
         return rgb_sensor_spec
 
 
@@ -405,12 +405,12 @@ class HabitatROSNode:
     def _depth_sensor_config(self, config: Config) -> hs.SensorSpec:
         """Return the configuration for a Habitat depth sensor."""
         depth_sensor_spec = hs.SensorSpec()
-        depth_sensor_spec.uuid = 'depth'
+        depth_sensor_spec.uuid = "depth"
         depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
-        depth_sensor_spec.resolution = [config['height'], config['width']]
-        depth_sensor_spec.parameters['near'] = str(config['near_plane'])
-        depth_sensor_spec.parameters['far'] = str(config['far_plane'])
-        depth_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
+        depth_sensor_spec.resolution = [config["height"], config["width"]]
+        depth_sensor_spec.parameters["near"] = str(config["near_plane"])
+        depth_sensor_spec.parameters["far"] = str(config["far_plane"])
+        depth_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
         return depth_sensor_spec
 
 
@@ -418,12 +418,12 @@ class HabitatROSNode:
     def _semantic_sensor_config(self, config: Config) -> hs.SensorSpec:
         """Return the configuration for a Habitat semantic sensor."""
         semantic_sensor_spec = hs.SensorSpec()
-        semantic_sensor_spec.uuid = 'semantic'
+        semantic_sensor_spec.uuid = "semantic"
         semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
-        semantic_sensor_spec.resolution = [config['height'], config['width']]
-        semantic_sensor_spec.parameters['near'] = str(0.00001)
-        semantic_sensor_spec.parameters['far'] = str(1000)
-        semantic_sensor_spec.parameters['hfov'] = str(f_to_hfov(config['f'], config['width']))
+        semantic_sensor_spec.resolution = [config["height"], config["width"]]
+        semantic_sensor_spec.parameters["near"] = str(0.00001)
+        semantic_sensor_spec.parameters["far"] = str(1000)
+        semantic_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
         return semantic_sensor_spec
 
 
@@ -435,7 +435,7 @@ class HabitatROSNode:
         for instance_id in range(len(objects)):
             map[instance_id] = objects[instance_id].category.index()
             if map[instance_id] > 40:
-                rospy.logwarn(''.join(['Invalid object class ID/name ',
+                rospy.logwarn("".join(["Invalid object class ID/name ",
                     str(map[instance_id]), '/"',
                     objects[instance_id].category.name(), '", replacing with 0']))
                 map[instance_id] = 0
@@ -448,31 +448,31 @@ class HabitatROSNode:
         image_queue_size = 10
         pub = {}
         # Pose publisher
-        pub['pose'] = rospy.Publisher(self._habitat_pose_topic_name, PoseStamped, queue_size=10)
+        pub["pose"] = rospy.Publisher(self._habitat_pose_topic_name, PoseStamped, queue_size=10)
         # Image publishers
-        pub['rgb'] = rospy.Publisher(self._rgb_topic_name + 'image_raw',
+        pub["rgb"] = rospy.Publisher(self._rgb_topic_name + "image_raw",
                 Image, queue_size=image_queue_size)
-        pub['depth'] = rospy.Publisher(self._depth_topic_name + 'image_raw',
+        pub["depth"] = rospy.Publisher(self._depth_topic_name + "image_raw",
                 Image, queue_size=image_queue_size)
-        if config['enable_semantics'] and config['instance_to_class'].size > 0:
+        if config["enable_semantics"] and config["instance_to_class"].size > 0:
             # Only publish semantics if the scene contains semantics
-            pub['sem_class'] = rospy.Publisher(self._sem_class_topic_name + 'image_raw',
+            pub["sem_class"] = rospy.Publisher(self._sem_class_topic_name + "image_raw",
                     Image, queue_size=image_queue_size)
-            pub['sem_instance'] = rospy.Publisher(self._sem_instance_topic_name + 'image_raw',
+            pub["sem_instance"] = rospy.Publisher(self._sem_instance_topic_name + "image_raw",
                     Image, queue_size=image_queue_size)
-            if config['visualize_semantics']:
-                pub['sem_class_render'] = rospy.Publisher(self._sem_class_topic_name + 'image_color',
+            if config["visualize_semantics"]:
+                pub["sem_class_render"] = rospy.Publisher(self._sem_class_topic_name + "image_color",
                         Image, queue_size=image_queue_size)
-                pub['sem_instance_render'] = rospy.Publisher(self._sem_instance_topic_name + 'image_color',
+                pub["sem_instance_render"] = rospy.Publisher(self._sem_instance_topic_name + "image_color",
                         Image, queue_size=image_queue_size)
         # Publish the camera info for each image topic
         image_topics = [self._rgb_topic_name, self._depth_topic_name]
-        if config['enable_semantics'] and config['instance_to_class'].size > 0:
+        if config["enable_semantics"] and config["instance_to_class"].size > 0:
             image_topics += [self._sem_class_topic_name, self._sem_instance_topic_name]
         for topic in image_topics:
-            pub[topic + '_camera_info'] = rospy.Publisher(topic + 'camera_info',
+            pub[topic + "_camera_info"] = rospy.Publisher(topic + "camera_info",
                 CameraInfo, queue_size=1, latch=True)
-            pub[topic + '_camera_info'].publish(self._camera_intrinsics_to_msg(config))
+            pub[topic + "_camera_info"].publish(self._camera_intrinsics_to_msg(config))
         return pub
 
 
@@ -496,24 +496,24 @@ class HabitatROSNode:
         """Remove object detections whose classes are not in the allowed class
         list. Their class and instance IDs are set to 0."""
         # Generate a per-pixel boolean matrix
-        allowed = np.vectorize(lambda x: x in self.config['allowed_classes'])
-        allowed_pixels = allowed(observation['sem_classes'])
+        allowed = np.vectorize(lambda x: x in self.config["allowed_classes"])
+        allowed_pixels = allowed(observation["sem_classes"])
         # Set all False pixels to 0 on the class and instance images
-        class_zeros = np.zeros(observation['sem_classes'].shape, dtype=observation['sem_classes'].dtype)
-        instance_zeros = np.zeros(observation['sem_instances'].shape, dtype=observation['sem_instances'].dtype)
-        observation['sem_classes'] = np.where(allowed_pixels, observation['sem_classes'], class_zeros)
-        observation['sem_instances'] = np.where(allowed_pixels, observation['sem_instances'], instance_zeros)
+        class_zeros = np.zeros(observation["sem_classes"].shape, dtype=observation["sem_classes"].dtype)
+        instance_zeros = np.zeros(observation["sem_instances"].shape, dtype=observation["sem_instances"].dtype)
+        observation["sem_classes"] = np.where(allowed_pixels, observation["sem_classes"], class_zeros)
+        observation["sem_instances"] = np.where(allowed_pixels, observation["sem_instances"], instance_zeros)
 
 
 
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
         """Convert the agent pose from the observation to a ROS PoseStamped
         message."""
-        T_PH = find_tf(self.tf_buffer, self.config['pose_frame_id'], "habitat")
-        t_HB, q_HB = split_pose(T_PH @ observation['T_HB'])
+        T_PH = find_tf(self.tf_buffer, self.config["pose_frame_id"], "habitat")
+        t_HB, q_HB = split_pose(T_PH @ observation["T_HB"])
         p = PoseStamped()
-        p.header.frame_id = self.config['pose_frame_id']
-        p.header.stamp = observation['timestamp']
+        p.header.frame_id = self.config["pose_frame_id"]
+        p.header.stamp = observation["timestamp"]
         p.pose.position.x = t_HB[0]
         p.pose.position.y = t_HB[1]
         p.pose.position.z = t_HB[2]
@@ -527,8 +527,8 @@ class HabitatROSNode:
 
     def _rgb_to_msg(self, observation: Observation) -> Image:
         """Convert the RGB image from the observation to a ROS Image message."""
-        msg = self._bridge.cv2_to_imgmsg(observation['rgb'], "rgb8")
-        msg.header.stamp = observation['timestamp']
+        msg = self._bridge.cv2_to_imgmsg(observation["rgb"], "rgb8")
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -536,8 +536,8 @@ class HabitatROSNode:
     def _depth_to_msg(self, observation: Observation) -> Image:
         """Convert the depth image from the observation to a ROS Image
         message."""
-        msg = self._bridge.cv2_to_imgmsg(observation['depth'], "32FC1")
-        msg.header.stamp = observation['timestamp']
+        msg = self._bridge.cv2_to_imgmsg(observation["depth"], "32FC1")
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -546,8 +546,8 @@ class HabitatROSNode:
         """Convert the instance ID image from the observation to a ROS Image
         message."""
         # Habitat-Sim produces 16-bit per-pixel instance ID images.
-        msg = self._bridge.cv2_to_imgmsg(observation['sem_instances'].astype(np.uint16), "16UC1")
-        msg.header.stamp = observation['timestamp']
+        msg = self._bridge.cv2_to_imgmsg(observation["sem_instances"].astype(np.uint16), "16UC1")
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -556,8 +556,8 @@ class HabitatROSNode:
         """Convert the class ID image from the observation to a ROS Image
         message."""
         # Habitat-Sim produces 8-bit per-pixel class ID images.
-        msg = self._bridge.cv2_to_imgmsg(observation['sem_classes'].astype(np.uint8), "8UC1")
-        msg.header.stamp = observation['timestamp']
+        msg = self._bridge.cv2_to_imgmsg(observation["sem_classes"].astype(np.uint8), "8UC1")
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -565,9 +565,9 @@ class HabitatROSNode:
     def _render_sem_instances_to_msg(self, observation: Observation) -> Image:
         """Visualize an instance ID image to a ROS Image message with
         per-instance colours."""
-        color_img = self.class_colors[observation['sem_instances'] % 41]
+        color_img = self.class_colors[observation["sem_instances"] % 41]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
-        msg.header.stamp = observation['timestamp']
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -575,9 +575,9 @@ class HabitatROSNode:
     def _render_sem_classes_to_msg(self, observation: Observation) -> Image:
         """Visualize a class ID image to a ROS Image message with per-class
         colours."""
-        color_img = self.class_colors[observation['sem_classes']]
+        color_img = self.class_colors[observation["sem_classes"]]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
-        msg.header.stamp = observation['timestamp']
+        msg.header.stamp = observation["timestamp"]
         return msg
 
 
@@ -588,10 +588,10 @@ class HabitatROSNode:
         # TODO Set parameters in the message header?
         # http://docs.ros.org/electric/api/sensor_msgs/html/msg/CameraInfo.html
         msg = CameraInfo()
-        msg.width = config['width']
-        msg.height = config['height']
-        msg.K = config['K'].flatten().tolist()
-        msg.P = config['P'].flatten().tolist()
+        msg.width = config["width"]
+        msg.height = config["height"]
+        msg.K = config["K"].flatten().tolist()
+        msg.P = config["P"].flatten().tolist()
         return msg
 
 
@@ -624,41 +624,41 @@ class HabitatROSNode:
         observation = sim.get_sensor_observations()
         # Return the current ROS time since the habitat simulator does not
         # provide one. sim.get_world_time() always returns 0
-        observation['timestamp'] = rospy.get_rostime()
+        observation["timestamp"] = rospy.get_rostime()
         # Change from RGBA to RGB
-        observation['rgb'] = observation['rgb'][..., 0:3]
-        if config['enable_semantics'] and config['instance_to_class'].size > 0:
+        observation["rgb"] = observation["rgb"][..., 0:3]
+        if config["enable_semantics"] and config["instance_to_class"].size > 0:
             # Assuming the scene has no more than 65534 objects
-            observation['sem_instances'] = np.clip(observation['semantic'].astype(np.uint16), 0, 65535)
-            del observation['semantic']
+            observation["sem_instances"] = np.clip(observation["semantic"].astype(np.uint16), 0, 65535)
+            del observation["semantic"]
             # Convert instance IDs to class IDs
-            observation['sem_classes'] = np.array(
-                    [config['instance_to_class'][x] for x in observation['sem_instances']],
+            observation["sem_classes"] = np.array(
+                    [config["instance_to_class"][x] for x in observation["sem_instances"]],
                     dtype=np.uint8)
         # Get the camera ground truth pose (T_IC) in the habitat frame from the
         # position and orientation
         t_IC = sim.get_agent(0).get_state().position
         q_IC = sim.get_agent(0).get_state().rotation
         T_IC = combine_pose(t_IC, q_IC)
-        observation['T_HB'] = self._T_IC_to_T_HB(T_IC)
+        observation["T_HB"] = self._T_IC_to_T_HB(T_IC)
         return observation
 
 
 
     def _publish_observation(self, obs: Observation, pub: Publishers, config: Config) -> None:
         """Publish the sensor observations and ground truth pose."""
-        pub['pose'].publish(self._pose_to_msg(obs))
-        pub['rgb'].publish(self._rgb_to_msg(obs))
-        pub['depth'].publish(self._depth_to_msg(obs))
-        if config['enable_semantics'] and config['instance_to_class'].size > 0:
-            if config['allowed_classes']:
+        pub["pose"].publish(self._pose_to_msg(obs))
+        pub["rgb"].publish(self._rgb_to_msg(obs))
+        pub["depth"].publish(self._depth_to_msg(obs))
+        if config["enable_semantics"] and config["instance_to_class"].size > 0:
+            if config["allowed_classes"]:
                 self._filter_sem_classes(obs)
-            pub['sem_class'].publish(self._sem_classes_to_msg(obs))
-            pub['sem_instance'].publish(self._sem_instances_to_msg(obs))
+            pub["sem_class"].publish(self._sem_classes_to_msg(obs))
+            pub["sem_instance"].publish(self._sem_instances_to_msg(obs))
             # Publish semantics visualisations
-            if config['visualize_semantics']:
-                pub['sem_class_render'].publish(self._render_sem_classes_to_msg(obs))
-                pub['sem_instance_render'].publish(self._render_sem_instances_to_msg(obs))
+            if config["visualize_semantics"]:
+                pub["sem_class_render"].publish(self._render_sem_classes_to_msg(obs))
+                pub["sem_instance_render"].publish(self._render_sem_instances_to_msg(obs))
 
 
 
