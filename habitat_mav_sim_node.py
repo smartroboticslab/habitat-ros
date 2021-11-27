@@ -153,10 +153,13 @@ def trajectory_time(T_0: np.array, T_f: np.array, a_max: np.array, w_max: np.arr
 
 
 def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
+    """Return the transformation relating the 2 frames."""
     try:
         return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        return None
+        rospy.logfatal('Could not find transform from frame "' + from_frame
+                + '" to frame "' + to_frame + '"')
+        raise
 
 
 
@@ -190,11 +193,6 @@ class SimpleMAVSimNode:
         # Initialize the pose from the habitat node
         T_FB_msg = rospy.wait_for_message(self._init_pose_topic, PoseStamped)
         T_WF = find_tf(self.tf_buffer, T_FB_msg.header.frame_id, self._config['world_frame_id'])
-        if T_WF is None:
-            rospy.logfatal('Could not find transform from frame '
-                    + T_FB_msg.header.frame_id + ' to frame '
-                    + self._config['world_frame_id'])
-            raise rospy.ROSException
         T_FB = msg_to_pose(T_FB_msg.pose)
         self._T_WB = T_WF.dot(T_FB)
         self._start_T_WB = self._T_WB
@@ -219,11 +217,6 @@ class SimpleMAVSimNode:
             return
         # Transform the pose to the correct frame
         T_WF = find_tf(self.tf_buffer, path.header.frame_id, self._config['world_frame_id'])
-        if T_WF is None:
-            rospy.logfatal('Could not find transform from frame '
-                    + path.header.frame_id + ' to frame '
-                    + self._config['world_frame_id'])
-            return
         self._pose_mutex.acquire()
         # Set the current and start poses to the first path vertex
         first_T_FB = msg_to_pose(path.poses[0].pose)

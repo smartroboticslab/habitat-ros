@@ -42,7 +42,7 @@ def read_config(config: Config) -> Config:
 def print_config(config: Config) -> None:
     """Print a dictionary containing the configuration to the ROS info log."""
     for name, val in config.items():
-        rospy.loginfo("  {: <25} {}".format(name + ":", str(val)))
+        rospy.loginfo("  {: <20} {}".format(name + ":", str(val)))
 
 
 
@@ -72,6 +72,21 @@ def msg_to_transform(msg: Transform) -> np.array:
     q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
             msg.rotation.y, msg.rotation.z)
     return combine_pose(t, q)
+
+def transform_to_msg(T_TF: np.array, from_frame: str, to_frame: str) -> TransformStamped:
+    msg = TransformStamped()
+    msg.header.stamp = rospy.get_rostime()
+    msg.header.frame_id = from_frame;
+    msg.child_frame_id = to_frame;
+    msg.transform.translation.x = T_TF[0,3]
+    msg.transform.translation.y = T_TF[1,3]
+    msg.transform.translation.z = T_TF[2,3]
+    q_TF = quaternion.from_rotation_matrix(T_TF[0:3, 0:3])
+    msg.transform.rotation.x = q_TF.x
+    msg.transform.rotation.y = q_TF.y
+    msg.transform.rotation.z = q_TF.z
+    msg.transform.rotation.w = q_TF.w
+    return msg
 
 def list_to_pose(l: List) -> Union[np.array, None]:
     """Convert a list to a pose represented by a 4x4 homogeneous matrix. The
@@ -124,9 +139,9 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
     try:
         return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        rospy.logerr('Could not find transform from frame "' + from_frame
+        rospy.logfatal('Could not find transform from frame "' + from_frame
                 + '" to frame "' + to_frame + '"')
-        return None
+        raise
 
 
 
@@ -262,6 +277,7 @@ class HabitatROSNode:
             'scene_file': '',
             'initial_T_HB': [],
             'pose_frame_id': 'habitat',
+            'pose_frame_at_initial_T_HB': False,
             'visualize_semantics': False}
 
 
@@ -277,6 +293,15 @@ class HabitatROSNode:
         # Initialize the transform listener
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        # Publish the T_HP transform so that the P frame coincides with the
+        # initial pose
+        if self.config['pose_frame_at_initial_T_HB'] and self.config['pose_frame_id'] != "habitat":
+            T_HP = self.T_HB
+            T_HP_msg = transform_to_msg(T_HP, "habitat", self.config['pose_frame_id'])
+            self.tf_static_broadcaster = tf2_ros.StaticTransformBroadcaster()
+            self.tf_static_broadcaster.sendTransform(T_HP_msg)
+            # Wait for the listener to pick up the transform
+            rospy.sleep(0.1)
         # Setup the external pose subscriber
         rospy.Subscriber(self._external_pose_topic_name, PoseStamped,
                 self._pose_callback, queue_size=1)
@@ -456,9 +481,7 @@ class HabitatROSNode:
         """Callback for receiving external pose messages. It updates the agent
         pose."""
         # Find the transform from the pose frame F to the habitat frame H
-        T_HE = find_tf(self.tf_buffer, pose.header.frame_id, "habitat")
-        if T_HE is None:
-            return
+        T_HE = find_tf(self.tf_buffer, "habitat", pose.header.frame_id)
         # Transform the pose
         T_EB = msg_to_pose(pose.pose)
         T_HB = T_HE @ T_EB
@@ -486,9 +509,7 @@ class HabitatROSNode:
     def _pose_to_msg(self, observation: Observation) -> PoseStamped:
         """Convert the agent pose from the observation to a ROS PoseStamped
         message."""
-        T_PH = find_tf(self.tf_buffer, "habitat", self.config['pose_frame_id'])
-        if T_PH is None:
-            return
+        T_PH = find_tf(self.tf_buffer, self.config['pose_frame_id'], "habitat")
         t_HB, q_HB = split_pose(T_PH @ observation['T_HB'])
         p = PoseStamped()
         p.header.frame_id = self.config['pose_frame_id']
