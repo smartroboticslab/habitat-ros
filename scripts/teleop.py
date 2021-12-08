@@ -66,12 +66,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-r", "--publish-rate", metavar="R", type=float, default=1.0,
             help="The rate R in Hz at which poses are published when a TSV "
             "file has been supplied.")
+    parser.add_argument("-t", "--pose-topic", metavar="TOPIC",
+            default=_pose_input_topic,
+            help="The topic the initial pose will be received from.")
     return parser.parse_args()
 
 
 
-def init_pose() -> _pose_input_topic_type:
-    return rospy.wait_for_message(_pose_input_topic, _pose_input_topic_type)
+def init_pose(pose_topic: str) -> _pose_input_topic_type:
+    return rospy.wait_for_message(pose_topic, _pose_input_topic_type)
 
 
 
@@ -221,7 +224,7 @@ def main_manual(args: argparse.Namespace) -> None:
         curses.noecho()
         # Wait for the initial pose
         print_waiting_for_pose(window)
-        pose = init_pose()
+        pose = init_pose(args.pose_topic)
         # Main loop
         quit = False
         print_help(window)
@@ -248,7 +251,7 @@ def main_tsv(args: argparse.Namespace) -> None:
         pose_pub = rospy.Publisher(_pose_output_topic, _pose_output_topic_type, queue_size=10)
     # Wait for the initial pose so we know the frame_id and that it's time to
     # start publishing
-    pose = init_pose()
+    pose = init_pose(args.pose_topic)
     with open(args.filename) as f:
         r = rospy.Rate(args.publish_rate)
         header = f.readline()
