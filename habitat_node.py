@@ -311,8 +311,7 @@ class HabitatROSNode:
             rate = rospy.Rate(self.config["fps"])
         while not rospy.is_shutdown():
             # Move, observe and publish
-            self._teleport()
-            observation = self._render(self.sim, self.config)
+            observation = self._move_and_render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
             if self.config["fps"] > 0:
                 rate.sleep()
@@ -383,6 +382,8 @@ class HabitatROSNode:
             agent_state = hs.agent.AgentState(t_IC, q_IC)
             agent.set_state(agent_state)
         t_HB, q_HB = split_pose(self.T_HB)
+        # Initialize the current pose timestamp to zero.
+        self.T_HB_stamp = rospy.Time()
         rospy.loginfo("Habitat initial t_HB:           " + str(t_HB))
         rospy.loginfo("Habitat initial q_HB (w,x,y,z): " + str(q_HB))
         return sim
@@ -488,6 +489,7 @@ class HabitatROSNode:
         # Update the pose
         self.T_HB_mutex.acquire()
         self.T_HB = T_HB
+        self.T_HB_stamp = pose.header.stamp
         self.T_HB_mutex.release()
 
 
@@ -608,23 +610,26 @@ class HabitatROSNode:
 
 
 
-    def _teleport(self) -> None:
-        """Move the habitat sensor to the pose contained in self.T_HB."""
+    def _move_and_render(self, sim: Sim, config: Config) -> Observation:
+        """Move the habitat sensor and return its observations and ground truth
+        pose."""
+        # Move the sensor to the pose contained in self.T_HB.
         self.T_HB_mutex.acquire()
         t_IC, q_IC = split_pose(self._T_HB_to_T_IC(self.T_HB))
+        stamp = self.T_HB_stamp
         self.T_HB_mutex.release()
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_IC, q_IC)
         agent.set_state(agent_state)
-
-
-
-    def _render(self, sim: Sim, config: Config) -> Observation:
-        """Return the sensor observations and ground truth pose"""
+        # Render the sensor observations.
         observation = sim.get_sensor_observations()
-        # Return the current ROS time since the habitat simulator does not
-        # provide one. sim.get_world_time() always returns 0
-        observation["timestamp"] = rospy.get_rostime()
+        if stamp == rospy.Time():
+            # No pose received yet, use the current timestamp.
+            observation["timestamp"] = rospy.get_time()
+        else:
+            # Set the observation timestamp to that of the current pose to keep
+            # them in sync.
+            observation["timestamp"] = stamp
         # Change from RGBA to RGB
         observation["rgb"] = observation["rgb"][..., 0:3]
         if config["enable_semantics"] and config["instance_to_class"].size > 0:
