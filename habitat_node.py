@@ -625,7 +625,7 @@ class HabitatROSNode:
         observation = sim.get_sensor_observations()
         if stamp == rospy.Time():
             # No pose received yet, use the current timestamp.
-            observation["timestamp"] = rospy.get_time()
+            observation["timestamp"] = rospy.get_rostime()
         else:
             # Set the observation timestamp to that of the current pose to keep
             # them in sync.
