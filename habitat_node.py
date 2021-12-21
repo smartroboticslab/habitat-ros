@@ -384,8 +384,10 @@ class HabitatROSNode:
         t_HB, q_HB = split_pose(self.T_HB)
         # Initialize the current pose timestamp to zero.
         self.T_HB_stamp = rospy.Time()
-        rospy.loginfo("Habitat initial t_HB:           " + str(t_HB))
-        rospy.loginfo("Habitat initial q_HB (w,x,y,z): " + str(q_HB))
+        rospy.loginfo("Habitat initial t_HB (x,y,z):   {}, {}, {}".format(
+            t_HB[0], t_HB[1], t_HB[2]))
+        rospy.loginfo("Habitat initial q_HB (x,y,z,w): {}, {}, {}, {}".format(
+            q_HB.x, q_HB.y, q_HB.z, q_HB.w))
         return sim
 
 
