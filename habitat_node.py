@@ -49,28 +49,28 @@ def print_config(config: Config) -> None:
 def split_pose(T: np.array) -> Tuple[np.array, quaternion.quaternion]:
     """Split a pose in a 4x4 matrix into a position vector and an orientation
     quaternion."""
-    return T[0:3, 3], quaternion.from_rotation_matrix(T[0:3, 0:3])
+    return T[0:3, 3], quaternion.from_rotation_matrix(T[0:3, 0:3]).normalized()
 
 def combine_pose(t: np.array, q: quaternion.quaternion) -> np.array:
     """Combine a position vector and an orientation quaternion into a 4x4 pose
     matrix."""
     T = np.identity(4)
     T[0:3, 3] = t
-    T[0:3, 0:3] = quaternion.as_rotation_matrix(q)
+    T[0:3, 0:3] = quaternion.as_rotation_matrix(q.normalized())
     return T
 
 def msg_to_pose(msg: Pose) -> np.array:
     """Convert a ROS Pose message to a 4x4 pose matrix."""
     t = [msg.position.x, msg.position.y, msg.position.z]
     q = quaternion.quaternion(msg.orientation.w, msg.orientation.x,
-            msg.orientation.y, msg.orientation.z)
+            msg.orientation.y, msg.orientation.z).normalized()
     return combine_pose(t, q)
 
 def msg_to_transform(msg: Transform) -> np.array:
     """Convert a ROS Transform message to a 4x4 transform matrix."""
     t = [msg.translation.x, msg.translation.y, msg.translation.z]
     q = quaternion.quaternion(msg.rotation.w, msg.rotation.x,
-            msg.rotation.y, msg.rotation.z)
+            msg.rotation.y, msg.rotation.z).normalized()
     return combine_pose(t, q)
 
 def transform_to_msg(T_TF: np.array, from_frame: str, to_frame: str) -> TransformStamped:
@@ -81,7 +81,7 @@ def transform_to_msg(T_TF: np.array, from_frame: str, to_frame: str) -> Transfor
     msg.transform.translation.x = T_TF[0,3]
     msg.transform.translation.y = T_TF[1,3]
     msg.transform.translation.z = T_TF[2,3]
-    q_TF = quaternion.from_rotation_matrix(T_TF[0:3, 0:3])
+    q_TF = quaternion.from_rotation_matrix(T_TF[0:3, 0:3]).normalized()
     msg.transform.rotation.x = q_TF.x
     msg.transform.rotation.y = q_TF.y
     msg.transform.rotation.z = q_TF.z
@@ -102,12 +102,12 @@ def list_to_pose(l: List) -> Union[np.array, None]:
         T[0:3,3] = np.array(l).T
     elif n == 4:
         # Orientation quaternion: qx, qy, qz, qw
-        q = quaternion.quaternion(l[3], l[0], l[1], l[2])
+        q = quaternion.quaternion(l[3], l[0], l[1], l[2]).normalized()
         T = np.identity(4)
         T[0:3,0:3] = quaternion.as_rotation_matrix(q)
     elif n == 7:
         # Position and orientation quaternion: tx, ty, tz, qx, qy, qz, qw
-        q = quaternion.quaternion(l[6], l[3], l[4], l[5])
+        q = quaternion.quaternion(l[6], l[3], l[4], l[5]).normalized()
         T = np.identity(4)
         T[0:3,3] = np.array(l[0:3]).T
         T[0:3,0:3] = quaternion.as_rotation_matrix(q)
