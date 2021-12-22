@@ -384,6 +384,7 @@ class HabitatROSNode:
         t_HB, q_HB = split_pose(self.T_HB)
         # Initialize the current pose timestamp to zero.
         self.T_HB_stamp = rospy.Time()
+        self.T_HB_received = False
         rospy.loginfo("Habitat initial t_HB (x,y,z):   {}, {}, {}".format(
             t_HB[0], t_HB[1], t_HB[2]))
         rospy.loginfo("Habitat initial q_HB (x,y,z,w): {}, {}, {}, {}".format(
@@ -492,6 +493,7 @@ class HabitatROSNode:
         self.T_HB_mutex.acquire()
         self.T_HB = T_HB
         self.T_HB_stamp = pose.header.stamp
+        self.T_HB_received = True
         self.T_HB_mutex.release()
 
 
@@ -615,23 +617,27 @@ class HabitatROSNode:
     def _move_and_render(self, sim: Sim, config: Config) -> Observation:
         """Move the habitat sensor and return its observations and ground truth
         pose."""
-        # Move the sensor to the pose contained in self.T_HB.
+        # Receive the latest pose.
         self.T_HB_mutex.acquire()
-        t_IC, q_IC = split_pose(self._T_HB_to_T_IC(self.T_HB))
+        T_HB = self.T_HB
         stamp = self.T_HB_stamp
+        T_HB_received = self.T_HB_received
+        self.T_HB_received = False
         self.T_HB_mutex.release()
+        # Move the sensor to the pose contained in self.T_HB.
+        t_IC, q_IC = split_pose(self._T_HB_to_T_IC(T_HB))
         agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_IC, q_IC)
         agent.set_state(agent_state)
         # Render the sensor observations.
         observation = sim.get_sensor_observations()
-        if stamp == rospy.Time():
-            # No pose received yet, use the current timestamp.
-            observation["timestamp"] = rospy.get_rostime()
-        else:
-            # Set the observation timestamp to that of the current pose to keep
+        if T_HB_received:
+            # Set the observation timestamp to that of the received pose to keep
             # them in sync.
             observation["timestamp"] = stamp
+        else:
+            # No new pose received yet, use the current timestamp.
+            observation["timestamp"] = rospy.get_rostime()
         # Change from RGBA to RGB
         observation["rgb"] = observation["rgb"][..., 0:3]
         if config["enable_semantics"] and config["instance_to_class"].size > 0:
