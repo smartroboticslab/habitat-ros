@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
 
+import copy
 import math
 import os
 import threading
@@ -619,8 +620,8 @@ class HabitatROSNode:
         pose."""
         # Receive the latest pose.
         self.T_HB_mutex.acquire()
-        T_HB = self.T_HB
-        stamp = self.T_HB_stamp
+        T_HB = np.copy(self.T_HB)
+        stamp = copy.deepcopy(self.T_HB_stamp)
         T_HB_received = self.T_HB_received
         self.T_HB_received = False
         self.T_HB_mutex.release()
