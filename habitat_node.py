@@ -627,9 +627,8 @@ class HabitatROSNode:
         self.T_HB_mutex.release()
         # Move the sensor to the pose contained in self.T_HB.
         t_IC, q_IC = split_pose(self._T_HB_to_T_IC(T_HB))
-        agent = self.sim.get_agent(0)
         agent_state = hs.agent.AgentState(t_IC, q_IC)
-        agent.set_state(agent_state)
+        self.sim.get_agent(0).set_state(agent_state)
         # Render the sensor observations.
         observation = sim.get_sensor_observations()
         if T_HB_received:
