@@ -351,13 +351,13 @@ class HabitatROSNode:
         """Initialize the Habitat simulator, create the sensors and load the
         scene file."""
         backend_config = hs.SimulatorConfiguration()
-        backend_config.scene.id = (config["scene_file"])
+        backend_config.scene_id = (config["scene_file"])
         agent_config = hs.AgentConfiguration()
         agent_config.sensor_specifications = [self._rgb_sensor_config(config),
                 self._depth_sensor_config(config), self._semantic_sensor_config(config)]
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
-        hfov = float(agent_config.sensor_specifications[0].parameters["hfov"])
+        hfov = float(agent_config.sensor_specifications[0].hfov)
         f = hfov_to_f(hfov, config["width"])
         cx = config["width"] / 2.0 - 0.5
         cy = config["height"] / 2.0 - 0.5
@@ -394,41 +394,44 @@ class HabitatROSNode:
 
 
 
-    def _rgb_sensor_config(self, config: Config) -> hs.SensorSpec:
+    def _rgb_sensor_config(self, config: Config) -> hs.CameraSensorSpec:
         """Return the configuration for a Habitat color sensor."""
-        rgb_sensor_spec = hs.SensorSpec()
+        rgb_sensor_spec = hs.CameraSensorSpec()
         rgb_sensor_spec.uuid = "rgb"
         rgb_sensor_spec.sensor_type = hs.SensorType.COLOR
+        rgb_sensor_spec.sensor_subtype = hs.SensorSubType.PINHOLE
         rgb_sensor_spec.resolution = [config["height"], config["width"]]
-        rgb_sensor_spec.parameters["near"] = str(0.00001)
-        rgb_sensor_spec.parameters["far"] = str(1000)
-        rgb_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
+        rgb_sensor_spec.near = 0.00001
+        rgb_sensor_spec.far = 1000
+        rgb_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
         return rgb_sensor_spec
 
 
 
-    def _depth_sensor_config(self, config: Config) -> hs.SensorSpec:
+    def _depth_sensor_config(self, config: Config) -> hs.CameraSensorSpec:
         """Return the configuration for a Habitat depth sensor."""
-        depth_sensor_spec = hs.SensorSpec()
+        depth_sensor_spec = hs.CameraSensorSpec()
         depth_sensor_spec.uuid = "depth"
         depth_sensor_spec.sensor_type = hs.SensorType.DEPTH
+        depth_sensor_spec.sensor_subtype = hs.SensorSubType.PINHOLE
         depth_sensor_spec.resolution = [config["height"], config["width"]]
-        depth_sensor_spec.parameters["near"] = str(config["near_plane"])
-        depth_sensor_spec.parameters["far"] = str(config["far_plane"])
-        depth_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
+        depth_sensor_spec.near = config["near_plane"]
+        depth_sensor_spec.far = config["far_plane"]
+        depth_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
         return depth_sensor_spec
 
 
 
-    def _semantic_sensor_config(self, config: Config) -> hs.SensorSpec:
+    def _semantic_sensor_config(self, config: Config) -> hs.CameraSensorSpec:
         """Return the configuration for a Habitat semantic sensor."""
-        semantic_sensor_spec = hs.SensorSpec()
+        semantic_sensor_spec = hs.CameraSensorSpec()
         semantic_sensor_spec.uuid = "semantic"
         semantic_sensor_spec.sensor_type = hs.SensorType.SEMANTIC
+        semantic_sensor_spec.sensor_subtype = hs.SensorSubType.PINHOLE
         semantic_sensor_spec.resolution = [config["height"], config["width"]]
-        semantic_sensor_spec.parameters["near"] = str(0.00001)
-        semantic_sensor_spec.parameters["far"] = str(1000)
-        semantic_sensor_spec.parameters["hfov"] = str(f_to_hfov(config["f"], config["width"]))
+        semantic_sensor_spec.near = 0.00001
+        semantic_sensor_spec.far = 1000
+        semantic_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
         return semantic_sensor_spec
 
 
