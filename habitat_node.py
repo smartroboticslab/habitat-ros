@@ -355,6 +355,8 @@ class HabitatROSNode:
         agent_config = hs.AgentConfiguration()
         agent_config.sensor_specifications = [self._rgb_sensor_config(config),
                 self._depth_sensor_config(config), self._semantic_sensor_config(config)]
+        agent_config.height = 0.0
+        agent_config.radius = 0.0
         sim = Sim(hs.Configuration(backend_config, [agent_config]))
         # Get the intrinsic camera parameters
         hfov = float(agent_config.sensor_specifications[0].hfov)
@@ -404,6 +406,8 @@ class HabitatROSNode:
         rgb_sensor_spec.near = 0.00001
         rgb_sensor_spec.far = 1000
         rgb_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
+        rgb_sensor_spec.position = np.zeros((3, 1))
+        rgb_sensor_spec.orientation = np.zeros((3, 1))
         return rgb_sensor_spec
 
 
@@ -418,6 +422,8 @@ class HabitatROSNode:
         depth_sensor_spec.near = config["near_plane"]
         depth_sensor_spec.far = config["far_plane"]
         depth_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
+        depth_sensor_spec.position = np.zeros((3, 1))
+        depth_sensor_spec.orientation = np.zeros((3, 1))
         return depth_sensor_spec
 
 
@@ -432,6 +438,8 @@ class HabitatROSNode:
         semantic_sensor_spec.near = 0.00001
         semantic_sensor_spec.far = 1000
         semantic_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
+        semantic_sensor_spec.position = np.zeros((3, 1))
+        semantic_sensor_spec.orientation = np.zeros((3, 1))
         return semantic_sensor_spec
 
 
