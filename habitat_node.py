@@ -323,7 +323,7 @@ class HabitatROSNode:
                 dtype=np.float64)
         self.class_id_to_name = self._class_id_to_name_map(sim.semantic_scene.categories)
         # Setup the instance/class conversion map
-        config["instance_to_class"] = self._generate_instance_to_class_map(sim.semantic_scene.objects)
+        config["instance_to_class"] = self._instance_to_class_map(sim.semantic_scene.objects, self.class_id_to_name)
         if config["enable_semantics"] and config["instance_to_class"].size == 0:
             rospy.logwarn("The scene contains no semantics")
         # Get or set the initial agent pose
@@ -404,16 +404,15 @@ class HabitatROSNode:
 
 
 
-    def _generate_instance_to_class_map(self, objects: List[hs.scene.SemanticObject]) -> np.ndarray:
+    def _instance_to_class_map(self, objects: List[hs.scene.SemanticObject], classes: Dict[int, str]) -> np.ndarray:
         """Given the objects in the scene, create an array that maps instance
         IDs to class IDs."""
         map = np.zeros(len(objects), dtype=np.uint8)
         for instance_id in range(len(objects)):
             map[instance_id] = objects[instance_id].category.index()
-            if map[instance_id] > 40:
-                rospy.logwarn("".join(["Invalid object class ID/name ",
-                    str(map[instance_id]), '/"',
-                    objects[instance_id].category.name(), '", replacing with 0']))
+            if map[instance_id] not in classes.keys():
+                rospy.logwarn('Invalid object class ID/name {}/"{}", replacing with 0/"{}"'.format(
+                    map[instance_id], objects[instance_id].category.name(), classes[0]))
                 map[instance_id] = 0
         return map
 
