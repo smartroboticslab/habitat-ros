@@ -147,52 +147,6 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 
 
 class HabitatROSNode:
-    # Dictionary from Matterport3D class IDs to class names
-    class_id_to_name = {
-        0: "void",
-        1: "wall",
-        2: "floor",
-        3: "chair",
-        4: "door",
-        5: "table",
-        6: "picture",
-        7: "cabinet",
-        8: "cushion",
-        9: "window",
-        10: "sofa",
-        11: "bed",
-        12: "curtain",
-        13: "chest_of_drawers",
-        14: "plant",
-        15: "sink",
-        16: "stairs",
-        17: "ceiling",
-        18: "toilet",
-        19: "stool",
-        20: "towel",
-        21: "mirror",
-        22: "tv_monitor",
-        23: "shower",
-        24: "column",
-        25: "bathtub",
-        26: "counter",
-        27: "fireplace",
-        28: "lighting",
-        29: "beam",
-        30: "railing",
-        31: "shelving",
-        32: "blinds",
-        33: "gym_equipment",
-        34: "seating",
-        35: "board_panel",
-        36: "furniture",
-        37: "appliances",
-        38: "clothes",
-        39: "objects",
-        40: "misc",
-        41: "unlabeled",
-    }
-
     # Matterport3D class RGB colors
     class_colors = np.array([
         [0xff, 0xff, 0xff],
@@ -368,6 +322,7 @@ class HabitatROSNode:
         config["P"] = np.array([[f, 0.0, cx, 0.0], [0.0, f, cy, 0.0],
             [0.0, 0.0, 1.0, 0.0]],
                 dtype=np.float64)
+        self.class_id_to_name = self._class_id_to_name_map(sim.semantic_scene.categories)
         # Setup the instance/class conversion map
         config["instance_to_class"] = self._generate_instance_to_class_map(sim.semantic_scene.objects)
         if config["enable_semantics"] and config["instance_to_class"].size == 0:
@@ -441,6 +396,12 @@ class HabitatROSNode:
         semantic_sensor_spec.position = np.zeros((3, 1))
         semantic_sensor_spec.orientation = np.zeros((3, 1))
         return semantic_sensor_spec
+
+
+
+    def _class_id_to_name_map(self, categories: List) -> Dict[int, str]:
+        """Generate a dictionary from class IDs to class names."""
+        return {x.index(): x.name() for x in categories if x is not None}
 
 
 
