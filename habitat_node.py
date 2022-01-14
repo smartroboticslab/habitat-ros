@@ -189,8 +189,7 @@ class HabitatROSNode:
         [0xe7, 0xcb, 0x94],
         [0xce, 0x6d, 0xbd],
         [0x17, 0xbe, 0xcf],
-        [0x7f, 0x7f, 0x7f],
-        [0x00, 0x00, 0x00]
+        [0x7f, 0x7f, 0x7f]
     ])
 
     # Instantiate a single CvBridge object for all conversions
@@ -544,7 +543,7 @@ class HabitatROSNode:
     def _render_sem_instances_to_msg(self, observation: Observation) -> Image:
         """Visualize an instance ID image to a ROS Image message with
         per-instance colours."""
-        color_img = self.class_colors[observation["sem_instances"] % 41]
+        color_img = self.class_colors[observation["sem_instances"] % len(self.class_colors)]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation["timestamp"]
         return msg
@@ -554,7 +553,7 @@ class HabitatROSNode:
     def _render_sem_classes_to_msg(self, observation: Observation) -> Image:
         """Visualize a class ID image to a ROS Image message with per-class
         colours."""
-        color_img = self.class_colors[observation["sem_classes"]]
+        color_img = self.class_colors[observation["sem_classes"] % len(self.class_colors)]
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation["timestamp"]
         return msg
