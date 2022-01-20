@@ -146,6 +146,16 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 
 
 
+def get_instance_id(o: hs.scene.SemanticObject) -> int:
+    """Return the instance ID of the object."""
+    s = o.id.strip("_")
+    if "_" in s:
+        return [int(x) for x in s.split("_")][2]
+    else:
+        return int(s)
+
+
+
 class HabitatROSNode:
     # Matterport3D class RGB colors
     class_colors = np.array([
@@ -408,14 +418,18 @@ class HabitatROSNode:
     def _instance_to_class_map(self, objects: List[hs.scene.SemanticObject], classes: Dict[int, str]) -> np.ndarray:
         """Given the objects in the scene, create an array that maps instance
         IDs to class IDs."""
-        map = np.zeros(len(objects), dtype=np.uint8)
-        for instance_id in range(len(objects)):
-            map[instance_id] = objects[instance_id].category.index()
-            if map[instance_id] not in classes.keys():
+        # Default is -1 so that an empty array is created in the following line
+        # if there are no objects.
+        max_instance_id = max([get_instance_id(x) for x in objects], default=-1)
+        mapping = np.zeros(max_instance_id + 1, dtype=np.uint8)
+        for object in objects:
+            instance_id = get_instance_id(object)
+            mapping[instance_id] = object.category.index()
+            if mapping[instance_id] not in classes.keys():
                 rospy.logwarn('Invalid object class ID/name {}/"{}", replacing with 0/"{}"'.format(
-                    map[instance_id], objects[instance_id].category.name(), classes[0]))
-                map[instance_id] = 0
-        return map
+                    mapping[instance_id], object.category.name(), classes[0]))
+                mapping[instance_id] = 0
+        return mapping
 
 
 
