@@ -323,9 +323,10 @@ class HabitatROSNode:
                 dtype=np.float64)
         self.class_id_to_name = self._class_id_to_name_map(sim.semantic_scene.categories)
         # Setup the instance/class conversion map
-        config["instance_to_class"] = self._instance_to_class_map(sim.semantic_scene.objects, self.class_id_to_name)
-        if config["enable_semantics"] and config["instance_to_class"].size == 0:
-            rospy.logwarn("The scene contains no semantics")
+        if config["enable_semantics"]:
+            config["instance_to_class"] = self._instance_to_class_map(sim.semantic_scene.objects, self.class_id_to_name)
+            if config["instance_to_class"].size == 0:
+                rospy.logwarn("The scene contains no semantics")
         # Get or set the initial agent pose
         agent = sim.get_agent(0)
         if config["initial_T_HB"] is None:
