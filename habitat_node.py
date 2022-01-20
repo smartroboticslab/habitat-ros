@@ -543,6 +543,7 @@ class HabitatROSNode:
         """Visualize an instance ID image to a ROS Image message with
         per-instance colours."""
         color_img = self.class_colors[observation["sem_instances"] % len(self.class_colors)]
+        color_img = color_img / 2 + observation["rgb"] / 2
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation["timestamp"]
         return msg
@@ -553,6 +554,7 @@ class HabitatROSNode:
         """Visualize a class ID image to a ROS Image message with per-class
         colours."""
         color_img = self.class_colors[observation["sem_classes"] % len(self.class_colors)]
+        color_img = color_img / 2 + observation["rgb"] / 2
         msg = self._bridge.cv2_to_imgmsg(color_img.astype(np.uint8), "rgb8")
         msg.header.stamp = observation["timestamp"]
         return msg
