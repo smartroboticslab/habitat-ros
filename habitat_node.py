@@ -146,6 +146,9 @@ def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[
 
 
 
+def remove_invalid_objects(objects: List[hs.scene.SemanticObject]) -> List[hs.scene.SemanticObject]:
+    return [x for x in objects if x is not None and x.category is not None]
+
 def get_instance_id(o: hs.scene.SemanticObject) -> int:
     """Return the instance ID of the object."""
     s = o.id.strip("_")
@@ -334,7 +337,8 @@ class HabitatROSNode:
         self.class_id_to_name = self._class_id_to_name_map(sim.semantic_scene.categories)
         # Setup the instance/class conversion map
         if config["enable_semantics"]:
-            config["instance_to_class"] = self._instance_to_class_map(sim.semantic_scene.objects, self.class_id_to_name)
+            config["instance_to_class"] = self._instance_to_class_map(
+                    remove_invalid_objects(sim.semantic_scene.objects), self.class_id_to_name)
             if config["instance_to_class"].size == 0:
                 rospy.logwarn("The scene contains no semantics")
         # Get or set the initial agent pose
