@@ -1,9 +1,20 @@
 <?xml version="1.0"?>
-<!-- SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London -->
-<!-- SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou -->
+<!-- SPDX-FileCopyrightText: 2020-2022 Smart Robotics Lab, Imperial College London -->
+<!-- SPDX-FileCopyrightText: 2020-2022 Sotiris Papatheodorou -->
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <launch>
+  <!-- Launch the teleoperation node -->
+  <arg name="teleop" default="false"/>
+
+  <remap from="/habitat_mav_sim/goal_path" to="/teleop/command" if="$(arg teleop)"/>
   <include file="$(find habitat_ros)/launch/habitat_mav_sim.launch" pass_all_args="true"/>
+
+  <group if="$(arg teleop)">
+    <remap from="/teleop/pose" to="/habitat/pose"/>
+    <include file="$(find habitat_ros)/launch/teleop.launch">
+      <arg name="publish_path" value="true"/>
+    </include>
+  </group>
+
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find habitat_ros)/config/habitat.rviz"/>
 </launch>
-

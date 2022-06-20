@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: 2020-2021 Smart Robotics Lab, Imperial College London
-# SPDX-FileCopyrightText: 2020-2021 Sotiris Papatheodorou
+# SPDX-FileCopyrightText: 2020-2022 Smart Robotics Lab, Imperial College London
+# SPDX-FileCopyrightText: 2020-2022 Sotiris Papatheodorou
 # SPDX-License-Identifier: BSD-3-Clause
 
-import argparse
 import curses
 import math
 import numpy as np
@@ -17,12 +16,11 @@ from typing import Tuple
 
 
 
-_node_name = "habitat_teleop"
-_pose_input_topic = "/habitat/pose"
+_node_name = "teleop"
+_pose_input_topic = "~pose"
 _pose_input_topic_type = PoseStamped
-_pose_output_topic = "/habitat/external_pose"
+_output_topic = "~command"
 _pose_output_topic_type = PoseStamped
-_path_output_topic = "/habitat_mav_sim/goal_path"
 _path_output_topic_type = Path
 
 
@@ -62,26 +60,6 @@ class Movement:
 
     def yaw(self) -> float:
         return math.radians(self._yaw * Movement._yaw_step)
-
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-            description="Control the agent with the keyboard or from a TSV file")
-    parser.add_argument("filename", metavar="TSV_FILE", nargs="?", default="",
-            help="Read the poses from a TSV file instead of manually moving "
-            "the MAV.")
-    parser.add_argument("-p", "--publish-path", action="store_true",
-            help="Publish the goal pose as a nav_msgs::Path instead of a "
-            "geometry_msgs::PoseStamped. This is meant for use with the MAV "
-            "simulator.")
-    parser.add_argument("-r", "--publish-rate", metavar="R", type=float, default=1.0,
-            help="The rate R in Hz at which poses are published when a TSV "
-            "file has been supplied.")
-    parser.add_argument("-t", "--pose-topic", metavar="TOPIC",
-            default=_pose_input_topic,
-            help="The topic the initial pose will be received from.")
-    return parser.parse_args()
 
 
 
@@ -240,20 +218,22 @@ def print_pose_stamped(p: PoseStamped, window) -> None:
 
 
 
-def main_manual(args: argparse.Namespace) -> None:
+def main() -> None:
     # Initialize ROS
     rospy.init_node(_node_name)
-    if args.publish_path:
-        path_pub = rospy.Publisher(_path_output_topic, _path_output_topic_type, queue_size=10)
+    publish_path = rospy.get_param("~publish_path", True)
+    if publish_path:
+        output_topic_type = _path_output_topic_type
     else:
-        pose_pub = rospy.Publisher(_pose_output_topic, _pose_output_topic_type, queue_size=10)
+        output_topic_type = _pose_output_topic_type
+    pub = rospy.Publisher(_output_topic, output_topic_type, queue_size=10)
     # Initialize curses
     window = curses.initscr()
     try:
         curses.noecho()
         # Wait for the initial pose
         print_waiting_for_pose(window)
-        pose = init_pose(args.pose_topic)
+        pose = init_pose(_pose_input_topic)
         # Main loop
         quit = False
         print_help(window)
@@ -261,46 +241,18 @@ def main_manual(args: argparse.Namespace) -> None:
             print_pose_stamped(pose, window)
             movement, quit = wait_for_key(window)
             new_pose = update_pose(pose, movement)
-            if args.publish_path:
-                path_pub.publish(pose_to_path(pose, new_pose))
+            if publish_path:
+                pub.publish(pose_to_path(pose, new_pose))
             else:
-                pose_pub.publish(new_pose)
+                pub.publish(new_pose)
             pose = new_pose
     finally:
         curses.endwin()
 
 
 
-def main_tsv(args: argparse.Namespace) -> None:
-    # Initialize ROS
-    rospy.init_node(_node_name)
-    if args.publish_path:
-        path_pub = rospy.Publisher(_path_output_topic, _path_output_topic_type, queue_size=10)
-    else:
-        pose_pub = rospy.Publisher(_pose_output_topic, _pose_output_topic_type, queue_size=10)
-    # Wait for the initial pose so we know the frame_id and that it's time to
-    # start publishing
-    pose = init_pose(args.pose_topic)
-    with open(args.filename) as f:
-        r = rospy.Rate(args.publish_rate)
-        header = f.readline()
-        for line in f:
-            if rospy.is_shutdown():
-                break
-            new_pose = pose_from_str(pose, line)
-            if args.publish_path:
-                path_pub.publish(pose_to_path(pose, new_pose))
-            else:
-                pose_pub.publish(new_pose)
-            pose = new_pose
-            print(line, end="")
-            r.sleep()
-
-
 if __name__ == "__main__":
-    args = parse_args()
-    if args.filename:
-        main_tsv(args)
-    else:
-        main_manual(args)
-
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass

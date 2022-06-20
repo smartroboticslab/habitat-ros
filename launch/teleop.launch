@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- SPDX-FileCopyrightText: 2022 Smart Robotics Lab, Imperial College London -->
+<!-- SPDX-FileCopyrightText: 2022 Sotiris Papatheodorou -->
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<launch>
+  <!-- Set the ROS log level in rosconsole.conf -->
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find habitat_ros)/config/rosconsole.conf"/>
+
+  <!-- Whether to publish a nav_msgs::Path or a geometry_msgs::PoseStamped message. -->
+  <arg name="publish_path" default="true"/>
+
+  <!-- Habitat-Sim teleoperation node -->
+  <node pkg="habitat_ros"
+      type="teleop.py"
+      name="teleop"
+      clear_params="true"
+      output="screen">
+    <param name="publish_path" type="bool" value="$(arg publish_path)"/>
+  </node>
+</launch>
