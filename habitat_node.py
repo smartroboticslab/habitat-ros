@@ -240,6 +240,7 @@ class HabitatROSNode:
             "f": 525.0,
             "fps": 30,
             "enable_semantics": False,
+            "depth_noise": False,
             "allowed_classes": [],
             "scene_file": "",
             "initial_T_HB": [],
@@ -393,6 +394,8 @@ class HabitatROSNode:
         depth_sensor_spec.hfov = f_to_hfov(config["f"], config["width"])
         depth_sensor_spec.position = np.zeros((3, 1))
         depth_sensor_spec.orientation = np.zeros((3, 1))
+        if config["depth_noise"]:
+            depth_sensor_spec.noise_model = "RedwoodDepthNoiseModel"
         return depth_sensor_spec
 
 

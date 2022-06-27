@@ -109,6 +109,7 @@ immediately moved there.
 | `habitat/f`                          | `float` | The focal length of the sensors in pixels. Habitat-Sim doesn't currently support different focal lengths between the x and y axes. |
 | `habitat/fps`                        | `float` | The rate at which the ground truth pose and rendered images are published in Hz. Set to 0 to publish as fast as possible. |
 | `habitat/enable_semantics`           | `bool`  | Enable publishing of the semantic class and instance IDs. |
+| `habitat/depth_noise`                | `bool`  | Enable [Redwood depth noise](http://redwood-data.org/indoor/dataset.html). |
 | `habitat/allowed_classes`            | `List`  | Only class IDs present in this list will be present in the output images. All other object classes will have a class and instance ID of 0. Leave empty to return all the available classes. Having a non-empty list significantly impacts performance so its suggested to only use this option for debugging. |
 | `habitat/scene_file`                 | `str`   | The path to the .glb scene file to load. The path can be absolute, relative to the habitat\_ros package or it may start with `~` to indicate the home directory of the current user. |
 | `habitat/initial_T_HB`               | `List`  | The initial body pose. Can be a translation only `[tx, ty, tz]`, rotation only `[qx, qy, qz, qw]`, translation and rotation `[tx, ty, tz, qx, qy, qz, qw]` or the 16 elements of a homogeneous transformation matrix in row-major order. |

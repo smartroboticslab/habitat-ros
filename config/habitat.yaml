@@ -12,6 +12,7 @@ habitat:
     f: 525.0
     fps: 30
     enable_semantics: false
+    depth_noise: false
     allowed_classes: []
 
     # Scene settings
