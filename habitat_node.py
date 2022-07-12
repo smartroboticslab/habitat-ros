@@ -509,17 +509,17 @@ class HabitatROSNode:
         """Convert the agent pose from the observation to a ROS PoseStamped
         message."""
         T_PH = find_tf(self.tf_buffer, self.config["pose_frame_id"], "habitat")
-        t_HB, q_HB = split_pose(T_PH @ observation["T_HB"])
+        t_PB, q_PB = split_pose(T_PH @ observation["T_HB"])
         p = PoseStamped()
         p.header.frame_id = self.config["pose_frame_id"]
         p.header.stamp = observation["timestamp"]
-        p.pose.position.x = t_HB[0]
-        p.pose.position.y = t_HB[1]
-        p.pose.position.z = t_HB[2]
-        p.pose.orientation.x = q_HB.x
-        p.pose.orientation.y = q_HB.y
-        p.pose.orientation.z = q_HB.z
-        p.pose.orientation.w = q_HB.w
+        p.pose.position.x = t_PB[0]
+        p.pose.position.y = t_PB[1]
+        p.pose.position.z = t_PB[2]
+        p.pose.orientation.x = q_PB.x
+        p.pose.orientation.y = q_PB.y
+        p.pose.orientation.z = q_PB.z
+        p.pose.orientation.w = q_PB.w
         return p
 
 
