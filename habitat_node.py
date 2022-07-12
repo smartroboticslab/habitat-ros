@@ -231,6 +231,11 @@ class HabitatROSNode:
             (-1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
     _T_BC = np.linalg.inv(_T_CB)
 
+    # Transforms between the TUM camera frame Ctum (z-forward, x-right) and the
+    # ROS body frame B (x-forward, z-up)
+    _T_BCtum = np.array([(0.0, 0.0, 1.0, 0.0), (-1.0, 0.0, 0.0, 0.0),
+            (0.0, -1.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)])
+
     # The default node options
     _default_config = {
             "width": 640,
@@ -246,7 +251,8 @@ class HabitatROSNode:
             "initial_T_HB": [],
             "pose_frame_id": "habitat",
             "pose_frame_at_initial_T_HB": False,
-            "visualize_semantics": False}
+            "visualize_semantics": False,
+            "recording_dir": ""}
 
 
 
@@ -281,6 +287,8 @@ class HabitatROSNode:
             # Move, observe and publish
             observation = self._move_and_render(self.sim, self.config)
             self._publish_observation(observation, self.pub, self.config)
+            if self.config["recording_dir"]:
+                self._record_observation(observation, self.config["recording_dir"])
             if self.config["fps"] > 0:
                 rate.sleep()
 
@@ -308,6 +316,8 @@ class HabitatROSNode:
         if T is None and config["initial_T_HB"]:
             rospy.logerr("Invalid initial T_HB. Expected list of 3, 4, 7 or 16 elements")
         config["initial_T_HB"] = T
+        if config["recording_dir"]:
+            config["recording_dir"] = os.path.expanduser(config["recording_dir"])
         rospy.loginfo("Habitat node parameters:")
         print_config(config)
         return config
@@ -666,6 +676,46 @@ class HabitatROSNode:
             if config["visualize_semantics"]:
                 pub["sem_class_render"].publish(self._render_sem_classes_to_msg(obs))
                 pub["sem_instance_render"].publish(self._render_sem_instances_to_msg(obs))
+
+
+
+    def _record_observation(self, obs: Observation, recording_dir: str) -> None:
+        os.makedirs(recording_dir, exist_ok=True)
+        os.makedirs(recording_dir + "/depth", exist_ok=True)
+        os.makedirs(recording_dir + "/rgb", exist_ok=True)
+        stamp_str = "{:.7f}".format(obs["timestamp"].to_sec())
+        # Update groundtruth.txt. Write the header if needed.
+        groundtruth_txt = recording_dir + "/groundtruth.txt"
+        if not os.path.isfile(groundtruth_txt):
+            with open(groundtruth_txt, "w") as f:
+                f.write("# ground truth trajectory\n")
+                f.write("# timestamp tx ty tz qx qy qz qw\n")
+        with open(groundtruth_txt, "a") as f:
+            T_PH = find_tf(self.tf_buffer, self.config["pose_frame_id"], "habitat")
+            t_PC, q_PC = split_pose(T_PH @ obs["T_HB"] @ self._T_BCtum)
+            f.write("{} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}\n".format(
+                stamp_str, t_PC[0], t_PC[1], t_PC[2],
+                q_PC.x, q_PC.y, q_PC.z, q_PC.w))
+        # Update depth.txt and rgb.txt. Write the header if needed.
+        for t in ["depth", "rgb"]:
+            type_txt = "".join([recording_dir, "/", t, ".txt"])
+            image_png = "".join([t, "/", stamp_str, ".png"])
+            if not os.path.isfile(type_txt):
+                with open(type_txt, "w") as f:
+                    f.write("# {} images\n".format(t))
+                    f.write("# timestamp filename\n")
+            with open(type_txt, "a") as f:
+                f.write("{} {}\n".format(stamp_str, image_png))
+        # Write the depth image. Set big float values to 0 so that it fits in a
+        # TUM PNG.
+        depth_png = "".join([recording_dir, "/depth/", stamp_str, ".png"])
+        depth_constrained = obs["depth"].astype(np.float32)
+        depth_constrained[depth_constrained < 0] = 0
+        depth_constrained[depth_constrained >= (2**16 - 1) / 5000] = 0
+        cv2.imwrite(depth_png, (5000 * depth_constrained).astype(np.uint16))
+        # Write the RGB image.
+        rgb_png = "".join([recording_dir, "/rgb/", stamp_str, ".png"])
+        cv2.imwrite(rgb_png, cv2.cvtColor(obs["rgb"], cv2.COLOR_BGR2RGB))
 
 
 

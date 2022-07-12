@@ -116,6 +116,7 @@ immediately moved there.
 | `habitat/pose_frame_id`              | `str`   | The ID of the frame for poses published in `/habitat/pose`. |
 | `habitat/pose_frame_at_initial_T_HB` | `bool`  | Enable publishing a static transform so that the Pose frame (P) coincides with the initial T\_HB pose. This results in the initial published pose being the identity matrix. |
 | `habitat/visualize_semantics`        | `bool`  | Generate and publish visualizations of the semantic class and instance IDs. Useful for debugging. |
+| `habitat/recording_dir`              | `srt`   | Store the run as a dataset in the TUM RGB-D format in `recording_dir`. |
 
 
 

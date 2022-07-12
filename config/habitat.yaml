@@ -28,3 +28,6 @@ habitat:
     # Visualization settings
     visualize_semantics: false
 
+    # Recording settings
+    recording_dir: ""
+
