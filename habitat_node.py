@@ -138,7 +138,7 @@ def f_to_hfov(f: float, width: int) -> float:
 def find_tf(tf_buffer: tf2_ros.Buffer, from_frame: str, to_frame: str) -> Union[np.array, None]:
     """Return the transformation relating the 2 frames."""
     try:
-        return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Time()).transform)
+        return msg_to_transform(tf_buffer.lookup_transform(from_frame, to_frame, rospy.Duration(0.01)).transform)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
         rospy.logfatal('Could not find transform from frame "' + from_frame
                 + '" to frame "' + to_frame + '"')
