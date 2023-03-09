@@ -1,29 +1,19 @@
 <?xml version="1.0"?>
-<!-- SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London -->
-<!-- SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou -->
-<!-- SPDX-License-Identifier: CC0-1.0 -->
-<package>
+<package format="2">
   <name>habitat_ros</name>
-  <version>0.0.0</version>
-  <description>
-    A ROS wrapper for Habitat-Sim
-  </description>
+  <version>0.1.0</version>
+  <description>A ROS interface to Habitat-Sim</description>
   <author>Sotiris Papatheodorou</author>
   <maintainer email="s.papatheodorou18@imperial.ac.uk">Sotiris Papatheodorou</maintainer>
   <license>BSD-3-Clause</license>
 
-  <buildtool_depend version_gte="0.5.68">catkin</buildtool_depend>
+  <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
 
-  <run_depend>geometry_msgs</run_depend>
-  <run_depend>message_runtime</run_depend>
-  <run_depend>nav_msgs</run_depend>
-  <run_depend>rospy</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>std_msgs</run_depend>
+  <exec_depend>message_runtime</exec_depend>
 </package>
