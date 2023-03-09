@@ -1,0 +1,6 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: habitat-ros
+
+Files: *.conf *.ini *.launch *.rviz *.yaml .editorconfig .gitignore .gitmodules CMakeLists.txt README.md package.xml
+Copyright: 2020-2023 Smart Robotics Lab, Imperial College London, Technical University of Munich
+License: CC0-1.0
